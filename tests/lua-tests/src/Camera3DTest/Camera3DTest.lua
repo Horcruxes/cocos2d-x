@@ -81,7 +81,7 @@ function Camera3DTestDemo:SwitchViewCallback(sender, value)
 
     if self._cameraType == CameraType.FreeCamera then
         local pos3D = self._sprite3D:getPosition3D()
-        self._camera:setPosition3D(cc.vec3(0 + pos3D.x, 130 + pos3D.y, 130 + pos3D.z))
+        self._camera:setPosition3D(cc.vec3add(cc.vec3(0, 130, 130), pos3D))
         self._camera:lookAt(self._sprite3D:getPosition3D(), cc.vec3(0,1,0))
         self._incRot:setEnabled(true)
         self._decRot:setEnabled(true)
@@ -94,7 +94,7 @@ function Camera3DTestDemo:SwitchViewCallback(sender, value)
         newFaceDir.z = -transform[11]
         newFaceDir = cc.vec3normalize(newFaceDir)
         local pos3D = self._sprite3D:getPosition3D()
-        self._camera:lookAt(cc.vec3(pos3D.x + newFaceDir.x * 50, pos3D.y + newFaceDir.y * 50, pos3D.z + newFaceDir.z * 50), cc.vec3(0, 1, 0))
+        self._camera:lookAt(cc.vec3add(pos3D, cc.vec3mul(newFaceDir, 50)), cc.vec3(0, 1, 0))
         self._incRot:setEnabled(true)
         self._decRot:setEnabled(true)
     elseif self._cameraType == CameraType.ThirdCamera then
@@ -226,7 +226,7 @@ function Camera3DTestDemo:onEnter()
 
                 nearP = self._camera:unproject(nearP)
                 farP  = self._camera:unproject(farP)
-                local dir = cc.vec3(farP.x - nearP.x, farP.y - nearP.y, farP.z - nearP.z)
+                local dir = cc.vec3sub(farP, nearP)
                 local dist=0.0
                 local ndd = dir.x * 0 + dir.y * 1 + dir.z * 0
                 if ndd == 0 then
@@ -235,7 +235,12 @@ function Camera3DTestDemo:onEnter()
 
                 local ndo = nearP.x * 0 + nearP.y * 1 + nearP.z * 0
                 dist= (0 - ndo) / ndd
-                local p =   cc.vec3(nearP.x + dist * dir.x, nearP.y + dist * dir.y, nearP.z + dist * dir.z)
+                local p =   cc.vec3add(nearP, cc.vec3mul(dir, dist))
+                
+                if p.x >  100 then p.x =  100 end
+                if p.x < -100 then p.x = -100 end
+                if p.z >  100 then p.z =  100 end
+                if p.z < -100 then p.z = -100 end
                 self._targetPos = p
             end
         end
@@ -264,6 +269,7 @@ function Camera3DTestDemo:onEnter()
             self._camera:setPosition3D(cameraPos)
         end
     end)
+    self._zoomout = menuItem1
 
     local label2 = cc.Label:createWithTTF(ttfConfig,"zoom in")
     local menuItem2 = cc.MenuItemLabel:create(label2)
@@ -275,6 +281,7 @@ function Camera3DTestDemo:onEnter()
             self._camera:setPosition3D(cameraPos)
         end
     end)
+    self._zoomin = menuItem2
 
     local label3 = cc.Label:createWithTTF(ttfConfig,"rotate+")
     local menuItem3 = cc.MenuItemLabel:create(label3)
@@ -327,6 +334,8 @@ function Camera3DTestDemo:onEnter()
         self._camera:lookAt(self._sprite3D:getPosition3D(), cc.vec3(0,1,0))
         self._incRot:setEnabled(false)
         self._decRot:setEnabled(false)
+        self._zoomin:setEnabled(true)
+        self._zoomout:setEnabled(true)
     end)
 
     local label7 = cc.Label:createWithTTF(ttfConfig,"first person")
@@ -343,9 +352,11 @@ function Camera3DTestDemo:onEnter()
         local pos3D = self._sprite3D:getPosition3D()
         self._camera:setPosition3D(cc.vec3(pos3D.x, pos3D.y + 35, pos3D.z))
         pos3D = self._sprite3D:getPosition3D()
-        self._camera:lookAt(cc.vec3(pos3D.x + newFaceDir.x * 50, pos3D.y + newFaceDir.y * 50 , pos3D.z + newFaceDir.z * 50), cc.vec3(0,1,0))
+        self._camera:lookAt(cc.vec3add(pos3D, cc.vec3mul(newFaceDir, 50)), cc.vec3(0,1,0))
         self._incRot:setEnabled(true)
         self._decRot:setEnabled(true)
+        self._zoomin:setEnabled(false)
+        self._zoomout:setEnabled(false)
     end)
 
     local menu = cc.Menu:create(menuItem1,menuItem2,menuItem3,menuItem4,menuItem5,menuItem6,menuItem7)
@@ -650,34 +661,48 @@ function FogTestDemo:createMenu()
     local label1 = cc.Label:createWithTTF(ttfConfig,"Linear ")
     local menuItem1 = cc.MenuItemLabel:create(label1)
     menuItem1:registerScriptTapHandler(function (tag, sender )
-        self._state:setUniformVec4("u_fogColor", cc.vec4(0.5,0.5,0.5,1.0))
-        self._state:setUniformFloat("u_fogStart",10)
-        self._state:setUniformFloat("u_fogEnd",60)
-        self._state:setUniformInt("u_fogEquation" ,0)
+        self._shader1:setUniform("u_fogColor", cc.bytearray.from_vec4( cc.vec4(0.5,0.5,0.5,1.0)))
+        self._shader1:setUniform("u_fogStart",cc.bytearray.from_float( 10))
+        self._shader1:setUniform("u_fogEnd",cc.bytearray.from_float( 60))
+        self._shader1:setUniform("u_fogEquation" ,cc.bytearray.from_int(0))
 
-        self._sprite3D1:setGLProgramState(self._state)
-        self._sprite3D2:setGLProgramState(self._state)
+        self._shader2:setUniform("u_fogColor", cc.bytearray.from_vec4( cc.vec4(0.5,0.5,0.5,1.0)))
+        self._shader2:setUniform("u_fogStart",cc.bytearray.from_float( 10))
+        self._shader2:setUniform("u_fogEnd",cc.bytearray.from_float( 60))
+        self._shader2:setUniform("u_fogEquation" ,cc.bytearray.from_int(0))
+
+
+        self._sprite3D1:setProgramState(self._shader1)
+        self._sprite3D2:setProgramState(self._shader2)
     end)
 
     local label2 = cc.Label:createWithTTF(ttfConfig,"Exp")
     local menuItem2 = cc.MenuItemLabel:create(label2)
     menuItem2:registerScriptTapHandler(function (tag, sender )
-        self._state:setUniformVec4("u_fogColor", cc.vec4(0.5,0.5,0.5,1.0))
-        self._state:setUniformFloat("u_fogDensity",0.03)
-        self._state:setUniformInt("u_fogEquation" ,1)
+        self._shader1:setUniform("u_fogColor", cc.bytearray.from_vec4( cc.vec4(0.5,0.5,0.5,1.0)))
+        self._shader1:setUniform("u_fogDensity",cc.bytearray.from_float( 0.03))
+        self._shader1:setUniform("u_fogEquation" ,cc.bytearray.from_int(1))
 
-        self._sprite3D1:setGLProgramState(self._state)
-        self._sprite3D2:setGLProgramState(self._state)
+        self._shader2:setUniform("u_fogColor", cc.bytearray.from_vec4( cc.vec4(0.5,0.5,0.5,1.0)))
+        self._shader2:setUniform("u_fogDensity",cc.bytearray.from_float( 0.03))
+        self._shader2:setUniform("u_fogEquation" ,cc.bytearray.from_int(1))
+
+        self._sprite3D1:setProgramState(self._shader1)
+        self._sprite3D2:setProgramState(self._shader2)
     end)
     local label3 = cc.Label:createWithTTF(ttfConfig,"Exp2")
     local menuItem3 = cc.MenuItemLabel:create(label3)
     menuItem3:registerScriptTapHandler(function (tag, sender )
-        self._state:setUniformVec4("u_fogColor", cc.vec4(0.5,0.5,0.5,1.0))
-        self._state:setUniformFloat("u_fogDensity",0.03)
-        self._state:setUniformInt("u_fogEquation" ,2)
+        self._shader1:setUniform("u_fogColor", cc.bytearray.from_vec4( cc.vec4(0.5,0.5,0.5,1.0)))
+        self._shader1:setUniform("u_fogDensity",cc.bytearray.from_float( 0.03))
+        self._shader1:setUniform("u_fogEquation" ,cc.bytearray.from_int(2))
 
-        self._sprite3D1:setGLProgramState(self._state)
-        self._sprite3D2:setGLProgramState(self._state)
+        self._shader2:setUniform("u_fogColor", cc.bytearray.from_vec4( cc.vec4(0.5,0.5,0.5,1.0)))
+        self._shader2:setUniform("u_fogDensity",cc.bytearray.from_float( 0.03))
+        self._shader2:setUniform("u_fogEquation" ,cc.bytearray.from_int(2))
+
+        self._sprite3D1:setProgramState(self._shader1)
+        self._sprite3D2:setProgramState(self._shader2)
     end)
     local menu = cc.Menu:create(menuItem1, menuItem2, menuItem3)
     
@@ -697,59 +722,31 @@ function FogTestDemo:createLayer3D()
     self:addChild(layer3D,0)
     self._layer3D = layer3D
 
-    self._shader = cc.GLProgram:createWithFilenames("Sprite3DTest/fog.vert","Sprite3DTest/fog.frag")
-    self._state  = cc.GLProgramState:create(self._shader)
+    local vertexShader = cc.FileUtils:getInstance():getStringFromFile("Sprite3DTest/fog.vert")
+    local fragmentShader = cc.FileUtils:getInstance():getStringFromFile("Sprite3DTest/fog.frag")
+
+    local program = ccb.Device:getInstance():newProgram(vertexShader, fragmentShader)
+    self._shader1 = ccb.ProgramState:new(program)
+    self._shader2 = self._shader1:clone()
+    program:release()
 
     self._sprite3D1 = cc.Sprite3D:create("Sprite3DTest/teapot.c3b")
     self._sprite3D2 = cc.Sprite3D:create("Sprite3DTest/teapot.c3b")
 
-    self._sprite3D1:setGLProgramState(self._state)
-    self._sprite3D2:setGLProgramState(self._state)
+    self._sprite3D1:setProgramState(self._shader1)
+    self._sprite3D2:setProgramState(self._shader2)
+    
+    local attributes = self._shader1:getProgram():getActiveAttributes();
 
-    --pass mesh's attribute to shader
-    local attributeNames = 
-    {
-        "a_position",
-        "a_color",
-        "a_texCoord",
-        "a_texCoord1",
-        "a_texCoord2",
-        "a_texCoord3",
-        "a_normal",
-        "a_blendWeight",
-        "a_blendIndex",
-    }
+    self._shader1:setUniform("u_fogColor", cc.bytearray.from_vec4(cc.vec4(0.5,0.5,0.5,1.0)))
+    self._shader1:setUniform("u_fogStart",cc.bytearray.from_float(10))
+    self._shader1:setUniform("u_fogEnd",cc.bytearray.from_float(60))
+    self._shader1:setUniform("u_fogEquation" ,cc.bytearray.from_int(0))
 
-    local offset = 0 
-    local attributeCount = self._sprite3D1:getMesh():getMeshVertexAttribCount()
-    for i = 1, attributeCount do
-        local meshattribute = self._sprite3D1:getMesh():getMeshVertexAttribute(i - 1)
-        self._state:setVertexAttribPointer(attributeNames[meshattribute.vertexAttrib + 1],
-            meshattribute.size, 
-            meshattribute.type,
-            false,
-            self._sprite3D1:getMesh():getVertexSizeInBytes(),
-            offset)
-        offset = offset + meshattribute.attribSizeBytes
-    end
-
-    local offset1 = 0
-    local attributeCount1 = self._sprite3D2:getMesh():getMeshVertexAttribCount()
-    for i = 1,  attributeCount1 do
-        local meshattribute = self._sprite3D2:getMesh():getMeshVertexAttribute(i - 1)
-        self._state:setVertexAttribPointer(attributeNames[meshattribute.vertexAttrib + 1],
-            meshattribute.size, 
-            meshattribute.type,
-            false,
-            self._sprite3D2:getMesh():getVertexSizeInBytes(),
-            offset1)
-        offset1 = offset1 + meshattribute.attribSizeBytes
-    end
-
-    self._state:setUniformVec4("u_fogColor", cc.vec4(0.5,0.5,0.5,1.0))
-    self._state:setUniformFloat("u_fogStart",10)
-    self._state:setUniformFloat("u_fogEnd",60)
-    self._state:setUniformInt("u_fogEquation" ,0)
+    self._shader2:setUniform("u_fogColor", cc.bytearray.from_vec4(cc.vec4(0.5,0.5,0.5,1.0)))
+    self._shader2:setUniform("u_fogStart",cc.bytearray.from_float(10))
+    self._shader2:setUniform("u_fogEnd",cc.bytearray.from_float(60))
+    self._shader2:setUniform("u_fogEquation" ,cc.bytearray.from_int(0))
 
     self._layer3D:addChild(self._sprite3D1)
     self._sprite3D1:setPosition3D( cc.vec3( 0, 0,0 ) )
@@ -771,25 +768,6 @@ function FogTestDemo:createLayer3D()
     end
 
     self._layer3D:setCameraMask(2)
-
-    local targetPlatform = cc.Application:getInstance():getTargetPlatform()
-    if targetPlatform == cc.PLATFORM_OS_ANDROID  or targetPlatform == cc.PLATFORM_OS_WINRT  or targetPlatform == cc.PLATFORM_OS_WP8  then
-        self._backToForegroundListener = cc.EventListenerCustom:create("event_renderer_recreated", function (eventCustom)
-            -- body
-            cc.Director:getInstance():setClearColor(cc.c4f(0.5,0.5,0.5,1))
-            local glProgram = self._state:getGLProgram()
-            glProgram:reset()
-            glProgram:initWithFilenames("Sprite3DTest/fog.vert","Sprite3DTest/fog.frag")
-            glProgram:link()
-            glProgram:updateUniforms()
-            
-            self._state:setUniformVec4("u_fogColor", cc.vec4(0.5,0.5,0.5,1.0))
-            self._state:setUniformFloat("u_fogStart",10)
-            self._state:setUniformFloat("u_fogEnd",60)
-            self._state:setUniformInt("u_fogEquation" ,0)
-        end)
-        cc.Director:getInstance():getEventDispatcher():addEventListenerWithFixedPriority(self._backToForegroundListener, -1)
-    end
 end
 
 function FogTestDemo:onEnter()
@@ -874,24 +852,25 @@ function CameraArcBallDemo:projectToSphere(r, x, y)
 end
 
 function CameraArcBallDemo:calculateArcBall(axis, angle, p1x, p1y, p2x, p2y)
-    local rotation_matrix = cc.mat4.createRotation(self._rotationQuat, cc.mat4.createIdentity())
+    local rotation_matrix = cc.mat4.createRotation(self._rotationQuat)
     --rotation y
-    local uv = mat4_transformVector(rotation_matrix , 0.0, 1.0, 0.0, 0.0, cc.vec3(0.0, 0.0, 0.0))
+    local uv = mat4_transformVector(rotation_matrix , 0.0, 1.0, 0.0, 0.0)
     --rotation x
-    local sv = mat4_transformVector(rotation_matrix, 1.0, 0.0, 0.0, 0.0, cc.vec3(0.0, 0.0, 0.0))
+    local sv = mat4_transformVector(rotation_matrix, 1.0, 0.0, 0.0, 0.0)
     --rotation z 
-    local lv = mat4_transformVector(rotation_matrix, 0.0, 0.0, -1.0, 0.0, cc.vec3(0.0, 0.0, 0.0))
+    local lv = mat4_transformVector(rotation_matrix, 0.0, 0.0, -1.0, 0.0)
     --start point screen transform to 3d
     local projectZ1 = self:projectToSphere(self._radius, p1x, p1y)
-    local p1 = cc.vec3(sv.x * p1x + uv.x * p1y - lv.x * projectZ1, sv.y * p1x + uv.y * p1y - lv.y * projectZ1 , sv.z * p1x + uv.z * p1y - lv.z * projectZ1)
+    local p1 = cc.vec3sub(cc.vec3add(cc.vec3mul(sv, p1x), cc.vec3mul(uv, p1y)), cc.vec3mul(lv, projectZ1))
     --end point screen transform to 3d
     local projectZ2 = self:projectToSphere(self._radius, p2x, p2y)
-    local p2 = cc.vec3(sv.x * p2x + uv.x * p2y - lv.x * projectZ2, sv.y * p2x + uv.y * p2y - lv.y * projectZ2 , sv.z * p2x + uv.z * p2y - lv.z * projectZ2)
+    local p2 = cc.vec3sub(cc.vec3add(cc.vec3mul(sv, p2x), cc.vec3mul(uv, p2y)), cc.vec3mul(lv, projectZ2))
     --calculate rotation axis
     axis = vec3_cross(p2, p1, axis)
     axis = cc.vec3normalize(axis)
 
-    local t = math.sqrt((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y) + (p2.z - p1.z) * (p2.z - p1.z)) / (2.0 * self._radius)
+    local pdiff = cc.vec3sub(p2, p1)
+    local t = math.sqrt(cc.vec3dot(pdiff, pdiff)) / (2.0 * self._radius)
     --clamp -1 to 1
     if t > 1.0 then
         t = 1.0
@@ -1034,9 +1013,9 @@ end
 
 function CameraArcBallDemo:updateCameraTransform()
     -- body
-    local trans = cc.mat4.createTranslation(cc.vec3(0.0, 10.0, self._distanceZ), cc.mat4.createIdentity())
-    local rot = cc.mat4.new(cc.mat4.createRotation(self._rotationQuat, cc.mat4.createIdentity()))
-    local center = cc.mat4.new(cc.mat4.createTranslation(self._center, cc.mat4.createIdentity()))
+    local trans = cc.mat4.createTranslation(cc.vec3(0.0, 10.0, self._distanceZ))
+    local rot = cc.mat4.new(cc.mat4.createRotation(self._rotationQuat))
+    local center = cc.mat4.new(cc.mat4.createTranslation(self._center))
     local result = cc.mat4.new(center:multiply(rot)):multiply(trans)
 
     self._camera:setNodeToParentTransform(result)

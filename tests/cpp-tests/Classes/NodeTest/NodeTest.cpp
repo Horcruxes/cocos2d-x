@@ -1,6 +1,7 @@
 /****************************************************************************
  Copyright (c) 2012 cocos2d-x.org
- Copyright (c) 2013-2014 Chukong Technologies Inc.
+ Copyright (c) 2013-2016 Chukong Technologies Inc.
+ Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
 
  http://www.cocos2d-x.org
 
@@ -46,10 +47,9 @@ enum
 
 CocosNodeTests::CocosNodeTests()
 {
-    //ADD_TEST_CASE(CameraTest1);
-    // TODO: Camera has been removed from CCNode; add new feature to support it
-    // ADD_TEST_CASE(CameraTest2);
-    //ADD_TEST_CASE(CameraCenterTest);
+    ADD_TEST_CASE(CameraTest1);
+    ADD_TEST_CASE(CameraTest2);
+    ADD_TEST_CASE(CameraCenterTest);
     ADD_TEST_CASE(NodeTest2);
     ADD_TEST_CASE(NodeTest4);
     ADD_TEST_CASE(NodeTest5);
@@ -71,6 +71,8 @@ CocosNodeTests::CocosNodeTests()
     ADD_TEST_CASE(NodeNormalizedPositionTest2);
     ADD_TEST_CASE(NodeNormalizedPositionBugTest);
     ADD_TEST_CASE(NodeNameTest);
+    ADD_TEST_CASE(Issue16100Test);
+    ADD_TEST_CASE(Issue16735Test);
 }
 
 TestCocosNodeDemo::TestCocosNodeDemo(void)
@@ -103,8 +105,8 @@ void NodeTest2::onEnter()
     auto sp3 = Sprite::create(s_pathSister1);
     auto sp4 = Sprite::create(s_pathSister2);
     
-    sp1->setPosition(Vec2(100, s.height /2 ));
-    sp2->setPosition(Vec2(380, s.height /2 ));
+    sp1->setPosition(Vec2(100.0f, s.height /2 ));
+    sp2->setPosition(Vec2(380.0f, s.height /2 ));
     addChild(sp1);
     addChild(sp2);
     
@@ -189,10 +191,10 @@ NodeTest5::NodeTest5()
     auto sp1 = Sprite::create(s_pathSister1);
     auto sp2 = Sprite::create(s_pathSister2);
     
-    sp1->setPosition(Vec2(100,160));
-    sp2->setPosition(Vec2(380,160));
+    sp1->setPosition(Vec2(100.0f,160.0f));
+    sp2->setPosition(Vec2(380.0f,160.0f));
 
-    auto rot = RotateBy::create(2, 360);
+    auto rot = RotateBy::create(2.0f, 360.0f);
     auto rot_back = rot->reverse();
     auto forever = RepeatForever::create(Sequence::create(rot, rot_back, nullptr));
     auto forever2 = forever->clone();
@@ -244,10 +246,10 @@ NodeTest6::NodeTest6()
     auto sp2 = Sprite::create(s_pathSister2);
     auto sp21 = Sprite::create(s_pathSister2);
         
-    sp1->setPosition(Vec2(100,160));
-    sp2->setPosition(Vec2(380,160));
+    sp1->setPosition(Vec2(100.0f,160.0f));
+    sp2->setPosition(Vec2(380.0f,160.0f));
         
-    auto rot = RotateBy::create(2, 360);
+    auto rot = RotateBy::create(2.0f, 360.0f);
     auto rot_back = rot->reverse();
     auto forever1 = RepeatForever::create(Sequence::create(rot, rot_back, nullptr));
     auto forever11 = forever1->clone();
@@ -357,9 +359,9 @@ StressTest2::StressTest2()
     auto sublayer = Layer::create();
     
     auto sp1 = Sprite::create(s_pathSister1);
-    sp1->setPosition( Vec2(80, s.height/2) );
+    sp1->setPosition( Vec2(80.0f, s.height/2) );
     
-    auto move = MoveBy::create(3, Vec2(350,0));
+    auto move = MoveBy::create(3, Vec2(350.0f,0.0f));
     auto move_ease_inout3 = EaseInOut::create(move->clone(), 2.0f);
     auto move_ease_inout_back3 = move_ease_inout3->reverse();
     auto seq3 = Sequence::create( move_ease_inout3, move_ease_inout_back3, nullptr);
@@ -368,10 +370,10 @@ StressTest2::StressTest2()
 
     auto fire = ParticleFire::create();
     fire->setTexture(Director::getInstance()->getTextureCache()->addImage("Images/fire.png"));
-    fire->setPosition( Vec2(80, s.height/2-50) );
+    fire->setPosition( Vec2(80.0f, s.height/2-50) );
     
     auto copy_seq3 = seq3->clone();
-    
+
     fire->runAction( RepeatForever::create(copy_seq3) );
     sublayer->addChild(fire, 2);
             
@@ -407,7 +409,7 @@ SchedulerTest1::SchedulerTest1()
     //CCLOG("retain count after addChild is %d", layer->getReferenceCount());      // 2
     
     layer->schedule(CC_CALLBACK_1(SchedulerTest1::doSomething, this), "do_something_key");
-    //CCLOG("retain count after schedule is %d", layer->getReferenceCount());      // 3 : (object-c viersion), but win32 version is still 2, because Timer class don't save target.
+    //CCLOG("retain count after schedule is %d", layer->getReferenceCount());      // 3 : (objective-c version), but win32 version is still 2, because Timer class don't save target.
     
     layer->unschedule("do_something_key");
     //CCLOG("retain count after unschedule is %d", layer->getReferenceCount());        // STILL 3!  (win32 is '2')
@@ -486,11 +488,11 @@ NodeToWorld::NodeToWorld()
     menu->setPosition( Vec2(backSize.width/2, backSize.height/2));
     back->addChild(menu);
     
-    auto rot = RotateBy::create(5, 360);
+    auto rot = RotateBy::create(5.0f, 360.0f);
     auto fe = RepeatForever::create( rot);
     item->runAction( fe );
     
-    auto move = MoveBy::create(3, Vec2(200,0));
+    auto move = MoveBy::create(3.0f, Vec2(200.0f,0.0f));
     auto move_back = move->reverse();
     auto seq = Sequence::create( move, move_back, nullptr);
     auto fe2 = RepeatForever::create(seq);
@@ -517,13 +519,13 @@ NodeToWorld3D::NodeToWorld3D()
     Size s = Director::getInstance()->getWinSize();
     auto parent = Node::create();
     parent->setContentSize(s);
-    parent->setAnchorPoint(Vec2(0.5, 0.5));
+    parent->setAnchorPoint(Vec2(0.5f, 0.5f));
     parent->setPosition(s.width/2, s.height/2);
     this->addChild(parent);
 
     auto back = Sprite::create(s_back3);
     parent->addChild( back, -10);
-    back->setAnchorPoint( Vec2(0,0) );
+    back->setAnchorPoint( Vec2(0.0f,0.0f) );
     auto backSize = back->getContentSize();
 
     auto item = MenuItemImage::create(s_PlayNormal, s_PlaySelect);
@@ -536,7 +538,7 @@ NodeToWorld3D::NodeToWorld3D()
     auto fe = RepeatForever::create( rot);
     item->runAction( fe );
 
-    auto move = MoveBy::create(3, Vec2(200,0));
+    auto move = MoveBy::create(3, Vec2(200.0f,0.0f));
     auto move_back = move->reverse();
     auto seq = Sequence::create( move, move_back, nullptr);
     auto fe2 = RepeatForever::create(seq);
@@ -561,13 +563,15 @@ void CameraOrbitTest::onEnter()
 {
     TestCocosNodeDemo::onEnter();
     _preProjection = Director::getInstance()->getProjection();
-    Director::getInstance()->setDepthTest(true);
+    Director::getInstance()->getRenderer()->setDepthTest(true);
+    Director::getInstance()->getRenderer()->setDepthWrite(true);
     Director::getInstance()->setProjection(Director::Projection::_3D);
 }
 
 void CameraOrbitTest::onExit()
 {
-    Director::getInstance()->setDepthTest(false);
+    Director::getInstance()->getRenderer()->setDepthTest(false);
+    Director::getInstance()->getRenderer()->setDepthWrite(false);
     Director::getInstance()->setProjection(_preProjection);
     TestCocosNodeDemo::onExit();
 }
@@ -724,8 +728,8 @@ CameraCenterTest::CameraCenterTest()
     addChild( sprite, 0);
     sprite->setPosition(Vec2(s.width/5*1, s.height/5*1));
     sprite->setColor(Color3B::RED);
-    sprite->setTextureRect(Rect(0, 0, 120, 50));
-    orbit = OrbitCamera::create(10, 1, 0, 0, 360, 0, 0);
+    sprite->setTextureRect(Rect(0.0f, 0.0f, 120.0f, 50.0f));
+    orbit = OrbitCamera::create(10.0f, 1.0f, 0.0f, 0.0f, 360.0f, 0.0f, 0.0f);
     sprite->runAction(RepeatForever::create( orbit ));
 //        [sprite setAnchorPoint: Vec2(0,1));
 
@@ -736,8 +740,8 @@ CameraCenterTest::CameraCenterTest()
     addChild( sprite, 0, 40);
     sprite->setPosition(Vec2(s.width/5*1, s.height/5*4));
     sprite->setColor(Color3B::BLUE);
-    sprite->setTextureRect(Rect(0, 0, 120, 50));
-    orbit = OrbitCamera::create(10, 1, 0, 0, 360, 0, 0);
+    sprite->setTextureRect(Rect(0.0f, 0.0f, 120.0f, 50.0f));
+    orbit = OrbitCamera::create(10.0f, 1.0f, 0.0f, 0.0f, 360.0f, 0.0f, 0.0f);
     sprite->runAction(RepeatForever::create( orbit ));
 
 
@@ -746,8 +750,8 @@ CameraCenterTest::CameraCenterTest()
     addChild( sprite, 0);    
     sprite->setPosition(Vec2(s.width/5*4, s.height/5*1));
     sprite->setColor(Color3B::YELLOW);
-    sprite->setTextureRect(Rect(0, 0, 120, 50));
-    orbit = OrbitCamera::create(10, 1, 0, 0, 360, 0, 0);
+    sprite->setTextureRect(Rect(0.0f, 0.0f, 120.0f, 50.0f));
+    orbit = OrbitCamera::create(10.0f, 1.0f, 0.0f, 0.0f, 360.0f, 0.0f, 0.0f);
     sprite->runAction(RepeatForever::create( orbit) );
 
     
@@ -756,8 +760,8 @@ CameraCenterTest::CameraCenterTest()
     addChild( sprite, 0, 40);
     sprite->setPosition(Vec2(s.width/5*4, s.height/5*4));
     sprite->setColor(Color3B::GREEN);
-    sprite->setTextureRect(Rect(0, 0, 120, 50));
-    orbit = OrbitCamera::create(10, 1, 0, 0, 360, 0, 0);
+    sprite->setTextureRect(Rect(0.0f, 0.0f, 120.0f, 50.0f));
+    orbit = OrbitCamera::create(10.0f, 1.0f, 0.0f, 0.0f, 360.0f, 0.0f, 0.0f);
     sprite->runAction( RepeatForever::create( orbit ) );
 
     // CENTER
@@ -765,8 +769,8 @@ CameraCenterTest::CameraCenterTest()
     addChild( sprite, 0, 40);
     sprite->setPosition(Vec2(s.width/2, s.height/2));
     sprite->setColor(Color3B::WHITE);
-    sprite->setTextureRect(Rect(0, 0, 120, 50));
-    orbit = OrbitCamera::create(10, 1, 0, 0, 360, 0, 0);
+    sprite->setTextureRect(Rect(0.0f, 0.0f, 120.0f, 50.0f));
+    orbit = OrbitCamera::create(10.0f, 1.0f, 0.0f, 0.0f, 360.0f, 0.0f, 0.0f);
     sprite->runAction(RepeatForever::create( orbit ) );
 }
 
@@ -965,56 +969,41 @@ public:
         auto sprite = new (std::nothrow) MySprite;
         sprite->initWithFile(spritefilename);
         sprite->autorelease();
-
-        auto shaderState = GLProgramState::getOrCreateWithGLProgramName(GLProgram::SHADER_NAME_POSITION_TEXTURE_COLOR);
-        sprite->setGLProgramState(shaderState);
+        auto program = backend::Program::getBuiltinProgram(backend::ProgramType::POSITION_TEXTURE_COLOR);
+        auto programState = new (std::nothrow) backend::ProgramState(program);
+        programState->autorelease();
+        sprite->setProgramState(programState);
         return sprite;
     }
+    virtual void setProgramState(backend::ProgramState* programState) override;
     virtual void draw(Renderer *renderer, const Mat4 &transform, uint32_t flags) override;
-    void onDraw(const Mat4 &transform, uint32_t flags);
 
 protected:
     CustomCommand _customCommand;
 
 };
 
+void MySprite::setProgramState(backend::ProgramState* programState)
+{
+    Sprite::setProgramState(programState);
+    auto& pipelineDescriptor = _customCommand.getPipelineDescriptor();
+    pipelineDescriptor.programState = programState;
+
+    _customCommand.setDrawType(CustomCommand::DrawType::ARRAY);
+    _customCommand.setPrimitiveType(CustomCommand::PrimitiveType::TRIANGLE_STRIP);
+    _customCommand.createVertexBuffer(sizeof(V3F_C4B_T2F), 4, CustomCommand::BufferUsage::STATIC);
+    _customCommand.updateVertexBuffer(&_quad, 4*sizeof(V3F_C4B_T2F));
+}
+
 void MySprite::draw(Renderer *renderer, const Mat4 &transform, uint32_t flags)
 {
+    const auto& projectionMat = Director::getInstance()->getMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_PROJECTION);
+    auto mvpMatrix = projectionMat * transform;
+    _customCommand.getPipelineDescriptor().programState->setUniform(_mvpMatrixLocation, mvpMatrix.m, sizeof(mvpMatrix.m));
     _customCommand.init(_globalZOrder, transform, flags);
-    _customCommand.func = CC_CALLBACK_0(MySprite::onDraw, this, transform, flags);
     renderer->addCommand(&_customCommand);
 }
 
-void MySprite::onDraw(const Mat4 &transform, uint32_t flags)
-{
-    getGLProgram()->use();
-    getGLProgram()->setUniformsForBuiltins(transform);
-
-    GL::blendFunc( _blendFunc.src, _blendFunc.dst );
-
-    GL::bindTexture2D( _texture->getName() );
-    GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POS_COLOR_TEX );
-
-    #define kQuadSize sizeof(_quad.bl)
-    size_t offset = (size_t)&_quad;
-
-    // vertex
-    int diff = offsetof( V3F_C4B_T2F, vertices);
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, kQuadSize, (void*) (offset + diff));
-
-    // texCoods
-    diff = offsetof( V3F_C4B_T2F, texCoords);
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_TEX_COORD, 2, GL_FLOAT, GL_FALSE, kQuadSize, (void*)(offset + diff));
-
-    // color
-    diff = offsetof( V3F_C4B_T2F, colors);
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, kQuadSize, (void*)(offset + diff));
-
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-    CHECK_GL_ERROR_DEBUG();
-    CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1,4);
-}
 //------------------------------------------------------------------
 //
 // CameraTest1
@@ -1026,13 +1015,15 @@ void CameraTest1::onEnter()
     TestCocosNodeDemo::onEnter();
     _preProjection = Director::getInstance()->getProjection();
     Director::getInstance()->setProjection(Director::Projection::_3D);
-    Director::getInstance()->setDepthTest(true);
+    Director::getInstance()->getRenderer()->setDepthTest(true);
+    Director::getInstance()->getRenderer()->setDepthWrite(true);
 }
 
 void CameraTest1::onExit()
 {
     Director::getInstance()->setProjection(_preProjection);
-    Director::getInstance()->setDepthTest(false);
+    Director::getInstance()->getRenderer()->setDepthTest(false);
+    Director::getInstance()->getRenderer()->setDepthWrite(false);
     TestCocosNodeDemo::onExit();
 }
 
@@ -1075,13 +1066,15 @@ void CameraTest2::onEnter()
     TestCocosNodeDemo::onEnter();
     _preProjection = Director::getInstance()->getProjection();
     Director::getInstance()->setProjection(Director::Projection::_3D);
-    Director::getInstance()->setDepthTest(true);
+    Director::getInstance()->getRenderer()->setDepthTest(true);
+    Director::getInstance()->getRenderer()->setDepthWrite(true);
 }
 
 void CameraTest2::onExit()
 {
     Director::getInstance()->setProjection(_preProjection);
-    Director::getInstance()->setDepthTest(false);
+    Director::getInstance()->getRenderer()->setDepthTest(false);
+    Director::getInstance()->getRenderer()->setDepthWrite(false);
     TestCocosNodeDemo::onExit();
 }
 
@@ -1130,15 +1123,15 @@ NodeNormalizedPositionTest1::NodeNormalizedPositionTest1()
 {
     Sprite *sprites[5];
     Vec2 positions[5];
-    positions[0] = Vec2(0,0);
-    positions[1] = Vec2(0,1);
-    positions[2] = Vec2(0.5,0.5);
-    positions[3] = Vec2(1,0);
-    positions[4] = Vec2(1,1);
+    positions[0] = Vec2(0.0f,0.0f);
+    positions[1] = Vec2(0.0f,1.0f);
+    positions[2] = Vec2(0.5f,0.5f);
+    positions[3] = Vec2(1.0f,0.0f);
+    positions[4] = Vec2(1.0f,1.0f);
 
     for(int i=0; i<5; i++) {
         sprites[i] = Sprite::create("Images/grossini.png");
-        sprites[i]->setNormalizedPosition(positions[i]);
+        sprites[i]->setPositionNormalized(positions[i]);
         addChild(sprites[i]);
     }
 }
@@ -1163,15 +1156,15 @@ NodeNormalizedPositionTest2::NodeNormalizedPositionTest2()
 {
     Sprite *sprites[5];
     Vec2 positions[5];
-    positions[0] = Vec2(0,0);
-    positions[1] = Vec2(0,1);
-    positions[2] = Vec2(0.5,0.5);
-    positions[3] = Vec2(1,0);
-    positions[4] = Vec2(1,1);
+    positions[0] = Vec2(0.0f,0.0f);
+    positions[1] = Vec2(0.0f,1.0f);
+    positions[2] = Vec2(0.5f,0.5f);
+    positions[3] = Vec2(1.0f,0.0f);
+    positions[4] = Vec2(1.0f,1.0f);
 
     for(int i=0; i<5; i++) {
         sprites[i] = Sprite::create("Images/grossini.png");
-        sprites[i]->setNormalizedPosition(positions[i]);
+        sprites[i]->setPositionNormalized(positions[i]);
         addChild(sprites[i]);
     }
     scheduleUpdate();
@@ -1180,7 +1173,7 @@ NodeNormalizedPositionTest2::NodeNormalizedPositionTest2()
     _copyContentSize = getContentSize();
 
 //    setAnchorPoint(Vec2(0.5,0.5));
-//    setNormalizedPosition(Vec2(0.5,0.5));
+//    setPositionNormalized(Vec2(0.5,0.5));
 }
 
 std::string NodeNormalizedPositionTest2::title() const
@@ -1216,11 +1209,11 @@ NodeNormalizedPositionBugTest::NodeNormalizedPositionBugTest()
 {
     Vec2 position;
    
-    position = Vec2(0.5,0.5);
+    position = Vec2(0.5f,0.5f);
 
     
     sprite = Sprite::create("Images/grossini.png");
-    sprite->setNormalizedPosition(position);
+    sprite->setPositionNormalized(position);
     addChild(sprite);
     
     scheduleUpdate();
@@ -1242,7 +1235,7 @@ void NodeNormalizedPositionBugTest::update(float dt)
     
     // for 5 seconds
     float norm = clampf(sinf(_accum), 0, 1.0);
-    sprite->setNormalizedPosition(Vec2(norm,norm));
+    sprite->setPositionNormalized(Vec2(norm,norm));
 }
 
 std::string NodeNameTest::title() const
@@ -1260,6 +1253,11 @@ void NodeNameTest::onEnter()
     TestCocosNodeDemo::onEnter();
     
     this->scheduleOnce(CC_CALLBACK_1(NodeNameTest::test, this), 0.05f, "test_key");
+}
+
+void NodeNameTest::onExit()
+{
+    TestCocosNodeDemo::onExit();
 }
 
 void NodeNameTest::test(float dt)
@@ -1309,19 +1307,18 @@ void NodeNameTest::test(float dt)
     });
     CCAssert(i == 1, "");
     
-    
     // enumerateChildren
     // name = node[[digit]]+/node
     
     parent = Node::create();
-    for (int i = 0; i < 100; ++i)
+    for (int i = 0; i < 10; ++i)
     {
         auto node = Node::create();
         sprintf(name, "node%d", i);
         node->setName(name);
         parent->addChild(node);
         
-        for (int j = 0; j < 100; ++j)
+        for (int j = 0; j < 10; ++j)
         {
             auto child = Node::create();
             child->setName("node");
@@ -1334,7 +1331,7 @@ void NodeNameTest::test(float dt)
         ++i;
         return false;
     });
-    CCAssert(i == 100, "");
+    CCAssert(i == 10, "");
     
     i = 0;
     parent->enumerateChildren("node1/node", [&i](Node* node) -> bool {
@@ -1345,14 +1342,14 @@ void NodeNameTest::test(float dt)
     
     // search from root
     parent = Node::create();
-    for (int i = 0; i < 100; ++i)
+    for (int i = 0; i < 10; ++i)
     {
         auto node = Node::create();
         sprintf(name, "node%d", i);
         node->setName(name);
         parent->addChild(node);
         
-        for (int j = 0; j < 100; ++j)
+        for (int j = 0; j < 10; ++j)
         {
             auto child = Node::create();
             child->setName("node");
@@ -1365,7 +1362,7 @@ void NodeNameTest::test(float dt)
         ++i;
         return false;
     });
-    CCAssert(i == 10000, "");
+    CCAssert(i == 100, "");
     
     i = 0;
     parent->enumerateChildren("node[[:digit:]]+/node", [&i](Node* node) -> bool {
@@ -1377,29 +1374,29 @@ void NodeNameTest::test(float dt)
     // search from parent
     // name is xxx/..
     i = 0;
-    parent->enumerateChildren("node/..", [&i](Node* node) -> bool {
+    parent->getChildByName("node1")->enumerateChildren("node[[:digit:]]+/node/..", [&i](Node* node) -> bool {
         ++i;
         return true;
     });
     CCAssert(i == 1, "");
     
     i = 0;
-    parent->enumerateChildren("node/..", [&i](Node* node) -> bool {
+    parent->getChildByName("node1")->enumerateChildren("node[[:digit:]]+/node/..", [&i](Node* node) -> bool {
         ++i;
         return false;
     });
-    CCAssert(i == 10000, "");
+    CCAssert(i == 100, "");
     
     // name = //xxx : search recursively
     parent = Node::create();
-    for (int j = 0; j < 100; j++)
+    for (int j = 0; j < 10; j++)
     {
         auto node = Node::create();
         sprintf(name, "node%d", j);
         node->setName(name);
         parent->addChild(node);
         
-        for (int k = 0; k < 100; ++k)
+        for (int k = 0; k < 10; ++k)
         {
             auto child = Node::create();
             sprintf(name, "node%d", k);
@@ -1413,7 +1410,7 @@ void NodeNameTest::test(float dt)
         ++i;
         return false;
     });
-    CCAssert(i == 10100, ""); // 10000(children) + 100(parent)
+    CCAssert(i == 110, ""); // 100(children) + 10(parent)
     
     i = 0;
     parent->enumerateChildren("//node[[:digit:]]+", [&i](Node* node) -> bool {
@@ -1423,11 +1420,11 @@ void NodeNameTest::test(float dt)
     CCAssert(i == 1, "");
     
     i = 0;
-    parent->enumerateChildren("//node[[:digit:]]+/..", [&i](Node* node) -> bool {
+    parent->getChildByName("node1")->enumerateChildren("//node[[:digit:]]+/..", [&i](Node* node) -> bool {
         ++i;
         return false;
     });
-    CCAssert(i == 10000, "");
+    CCAssert(i == 110, "");
     
     // utils::findChildren()
     
@@ -1440,5 +1437,114 @@ void NodeNameTest::test(float dt)
     }
     auto findChildren = utils::findChildren(*parent, "node");
     CCAssert(findChildren.size() == 50, "");
+}
+
+//------------------------------------------------------------------
+//
+// Issue16100Test
+//
+//------------------------------------------------------------------
+void Issue16100Test::onEnter()
+{
+    TestCocosNodeDemo::onEnter();
+
+    // create user camera
+    auto s = Director::getInstance()->getWinSize();
+
+    auto delay = DelayTime::create(0.1f);
+    auto f = CallFunc::create([this, s]()
+    {
+        auto camera = Camera::createOrthographic(s.width * 2, s.height * 2, -1024, 1024);
+        camera->setCameraFlag(CameraFlag::USER1);
+        addChild(camera);
+    });
+    this->runAction(Sequence::createWithTwoActions(delay, f));
+
+    // grossini using default camera
+    auto sprite = Sprite::create("Images/grossini.png");
+    this->addChild(sprite);
+
+    sprite->setPosition(-200,s.height/3);
+    auto moveby = MoveBy::create(2, Vec2(400.0f,0.0f));
+    auto movebyback = moveby->reverse();
+    auto seq = Sequence::create(moveby, movebyback, nullptr);
+    auto forever = RepeatForever::create(seq);
+
+    sprite->runAction(forever);
+
+    sprite->setCameraMask((int)CameraFlag::DEFAULT);
+
+
+    // grossini's sister using user camera
+    auto sister = Sprite::create("Images/grossinis_sister1.png");
+    this->addChild(sister);
+
+    sister->setPosition(-200,s.height*2/3);
+    auto moveby1 = MoveBy::create(2, Vec2(400.0f,0.0f));
+    auto movebyback1 = moveby1->reverse();
+    auto seq1 = Sequence::create(moveby1, movebyback1, nullptr);
+    auto forever1 = RepeatForever::create(seq1);
+
+    sister->runAction(forever1);
+    sister->setCameraMask((int)CameraFlag::USER1);
+}
+
+void Issue16100Test::onExit()
+{
+    TestCocosNodeDemo::onExit();
+}
+
+std::string Issue16100Test::title() const
+{
+    return "Issue 16100";
+}
+
+std::string Issue16100Test::subtitle() const
+{
+    return "Sprite should appear on the screen";
+}
+
+//------------------------------------------------------------------
+//
+// Issue16735Test
+//
+//------------------------------------------------------------------
+void Issue16735Test::onEnter()
+{
+    TestCocosNodeDemo::onEnter();
+
+    auto visibleSize = Director::getInstance()->getVisibleSize();
+    auto origin = Director::getInstance()->getVisibleOrigin();
+
+    auto sprite1 = Sprite::create("Images/grossini.png");
+    sprite1->setPosition(Vec2(visibleSize / 2) + origin);
+    addChild(sprite1);
+
+    auto sprite2 = Sprite::create("Images/grossini.png");
+    sprite2->setPosition(Vec2(visibleSize / 2) + origin);
+    sprite2->setSkewX(30);
+    sprite2->setScale(2);
+    sprite2->setRotation(30);
+    addChild(sprite2);
+
+    auto d = DrawNode::create();
+    d->drawLine(Vec2(origin.x, origin.y + visibleSize.height/2), Vec2(origin.x + visibleSize.width, origin.y + visibleSize.height/2), Color4F::RED);
+    d->drawLine(Vec2(origin.x + visibleSize.width/2, origin.y), Vec2(origin.x + visibleSize.width/2, origin.y + visibleSize.height), Color4F::RED);
     
+    addChild(d);
+}
+
+void Issue16735Test::onExit()
+{
+    TestCocosNodeDemo::onExit();
+}
+
+std::string Issue16735Test::title() const
+{
+    return "Issue 16735";
+}
+
+std::string Issue16735Test::subtitle() const
+{
+    return "Sprite should appear on the center of screen";
 }

@@ -1,6 +1,7 @@
 /****************************************************************************
  Copyright (c) 2012 cocos2d-x.org
- Copyright (c) 2015 Chukong Technologies Inc.
+ Copyright (c) 2015-2016 Chukong Technologies Inc.
+ Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
  
  http://www.cocos2d-x.org
  
@@ -39,8 +40,6 @@ enum
     IDC_RESTART
 };
 
-static cocos2d::Scene* physicsScene = nullptr;
-
 #define START_POS_X -0.5
 #define START_POS_Y -2.5
 #define START_POS_Z -0.5
@@ -48,6 +47,8 @@ static cocos2d::Scene* physicsScene = nullptr;
 #define ARRAY_SIZE_X 4
 #define ARRAY_SIZE_Y 3
 #define ARRAY_SIZE_Z 4
+
+static cocos2d::Scene *physicsScene = nullptr;
 
 Physics3DTests::Physics3DTests()
 {
@@ -111,7 +112,7 @@ bool Physics3DTestDemo::init()
         
         TTFConfig ttfConfig("fonts/arial.ttf", 10);
         auto label = Label::createWithTTF(ttfConfig,"DebugDraw OFF");
-        auto menuItem = MenuItemLabel::create(label, [=](Ref *ref){
+        auto menuItem = MenuItemLabel::create(label, [=](Ref* /*ref*/){
             if (getPhysics3DWorld()->isDebugDrawEnabled()){
                 getPhysics3DWorld()->setDebugDrawEnable(false);
                 label->setString("DebugDraw OFF");
@@ -175,19 +176,17 @@ void Physics3DTestDemo::onTouchesEnded(const std::vector<Touch*>& touches, cocos
     }
 }
 
-Physics3DTestDemo::Physics3DTestDemo( void )
-: _angle(0.0f)
-, _camera(nullptr)
+Physics3DTestDemo::Physics3DTestDemo()
 {
 
 }
 
-void Physics3DTestDemo::update( float delta )
+void Physics3DTestDemo::update( float /*delta*/ )
 {
     
 }
 
-Physics3DTestDemo::~Physics3DTestDemo( void )
+Physics3DTestDemo::~Physics3DTestDemo()
 {
     
 }

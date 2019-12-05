@@ -1,5 +1,6 @@
 /****************************************************************************
- Copyright (c) 2013-2015 Chukong Technologies Inc.
+ Copyright (c) 2013-2016 Chukong Technologies Inc.
+ Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
 
  http://www.cocos2d-x.org
 
@@ -21,7 +22,7 @@
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.
 ****************************************************************************/
-#include "CCNinePatchImageParser.h"
+#include "base/CCNinePatchImageParser.h"
 #include "platform/CCImage.h"
 #include "base/CCDirector.h"
 
@@ -47,7 +48,7 @@ NinePatchImageParser::NinePatchImageParser(Image* image)
 ,_isRotated(false)
 {
     this->_imageFrame = Rect(0,0,image->getWidth(), image->getHeight());
-    CCASSERT(image->getRenderFormat()==Texture2D::PixelFormat::RGBA8888,
+    CCASSERT(image->getPixelFormat()==backend::PixelFormat::RGBA8888,
              "unsupported format, currently only supports rgba8888");
 }
 
@@ -56,7 +57,7 @@ NinePatchImageParser::NinePatchImageParser(Image* image, const Rect& frame, bool
 ,_imageFrame(frame)
 ,_isRotated(rotated)
 {
-    CCASSERT(image->getRenderFormat()==Texture2D::PixelFormat::RGBA8888,
+    CCASSERT(image->getPixelFormat()==backend::PixelFormat::RGBA8888,
              "unsupported format, currently only supports rgba8888");
 }
 
@@ -184,17 +185,14 @@ Rect NinePatchImageParser::parseCapInset() const
                          verticalLine.y - verticalLine.x);
     }
     
-    capInsets = Rect(capInsets.origin.x / CC_CONTENT_SCALE_FACTOR(),
-                     capInsets.origin.y / CC_CONTENT_SCALE_FACTOR(),
-                     capInsets.size.width / CC_CONTENT_SCALE_FACTOR(),
-                     capInsets.size.height / CC_CONTENT_SCALE_FACTOR());
+    capInsets = CC_RECT_PIXELS_TO_POINTS(capInsets);
     return capInsets;
 }
 
 void NinePatchImageParser::setSpriteFrameInfo(Image* image, const cocos2d::Rect& frameRect, bool rotated )
 {
     this->_image = image;
-    CCASSERT(image->getRenderFormat()==Texture2D::PixelFormat::RGBA8888,
+    CCASSERT(image->getPixelFormat()==backend::PixelFormat::RGBA8888,
              "unsupported format, currently only supports rgba8888");
     this->_imageFrame = frameRect;
     this->_isRotated = rotated;

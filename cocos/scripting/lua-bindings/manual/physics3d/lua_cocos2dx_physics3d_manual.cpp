@@ -1,5 +1,6 @@
 /****************************************************************************
- Copyright (c) 2014 Chukong Technologies Inc.
+ Copyright (c) 2014-2016 Chukong Technologies Inc.
+ Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
 
  http://www.cocos2d-x.org
 
@@ -24,11 +25,11 @@
 #include "platform/CCPlatformConfig.h"
 #include "base/ccConfig.h"
 #if CC_USE_3D_PHYSICS && CC_ENABLE_BULLET_INTEGRATION
-#include "lua_cocos2dx_physics3d_manual.h"
-#include "lua_cocos2dx_physics3d_auto.hpp"
-#include "tolua_fix.h"
-#include "LuaBasicConversions.h"
-#include "CCLuaEngine.h"
+#include "scripting/lua-bindings/manual/physics3d/lua_cocos2dx_physics3d_manual.h"
+#include "scripting/lua-bindings/auto/lua_cocos2dx_physics3d_auto.hpp"
+#include "scripting/lua-bindings/manual/tolua_fix.h"
+#include "scripting/lua-bindings/manual/LuaBasicConversions.h"
+#include "scripting/lua-bindings/manual/CCLuaEngine.h"
 #include "physics3d/CCPhysics3D.h"
 
 bool luaval_to_Physics3DRigidBodyDes(lua_State* L,int lo,cocos2d::Physics3DRigidBodyDes* outValue, const char* funcName)
@@ -51,7 +52,7 @@ bool luaval_to_Physics3DRigidBodyDes(lua_State* L,int lo,cocos2d::Physics3DRigid
     {
         lua_pushstring(L, "mass");
         lua_gettable(L, lo);
-        outValue->mass = lua_isnil(L, -1) ? 0 : lua_tonumber(L, -1);
+        outValue->mass = lua_isnil(L, -1) ? 0.0f : (float)lua_tonumber(L, -1);
         lua_pop(L, 1);
         
         lua_pushstring(L, "localInertia");
@@ -552,7 +553,7 @@ int lua_cocos2dx_physics3d_Physics3DShape_createHeightfield(lua_State* L)
             tolua_error(L,"invalid arguments in function 'lua_cocos2dx_physics3d_Physics3DShape_createHeightfield'", nullptr);
             return 0;
         }
-        cocos2d::Physics3DShape* ret = cocos2d::Physics3DShape::createHeightfield(arg0, arg1, &arg2[0], arg3, arg4, arg5, arg6, arg7);
+        cocos2d::Physics3DShape* ret = cocos2d::Physics3DShape::createHeightfield(arg0, arg1, &arg2[0], (float)arg3, (float)arg4, (float)arg5, arg6, arg7);
         object_to_luaval<cocos2d::Physics3DShape>(L, "cc.Physics3DShape",(cocos2d::Physics3DShape*)ret);
         return 1;
     }
@@ -581,7 +582,7 @@ int lua_cocos2dx_physics3d_Physics3DShape_createHeightfield(lua_State* L)
             tolua_error(L,"invalid arguments in function 'lua_cocos2dx_physics3d_Physics3DShape_createHeightfield'", nullptr);
             return 0;
         }
-        cocos2d::Physics3DShape* ret = cocos2d::Physics3DShape::createHeightfield(arg0, arg1, &arg2[0], arg3, arg4, arg5, arg6, arg7, arg8);
+        cocos2d::Physics3DShape* ret = cocos2d::Physics3DShape::createHeightfield(arg0, arg1, &arg2[0], (float)arg3, (float)arg4, (float)arg5, arg6, arg7, arg8);
         object_to_luaval<cocos2d::Physics3DShape>(L, "cc.Physics3DShape",(cocos2d::Physics3DShape*)ret);
         return 1;
     }
@@ -759,7 +760,7 @@ int lua_cocos2dx_physics3d_Physics3DObject_setCollisionCallback(lua_State* L)
             {
                 int vecIndex = 1;
                 lua_newtable(L);
-                for (auto value : ci.collisionPointList)
+                for (const auto& value : ci.collisionPointList)
                 {
                     lua_pushnumber(L, vecIndex);
                     CollisionPoint_to_luaval(L, value);

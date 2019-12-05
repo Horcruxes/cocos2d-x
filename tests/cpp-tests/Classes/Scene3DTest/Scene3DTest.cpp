@@ -1,3 +1,27 @@
+/****************************************************************************
+ Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
+ 
+ http://www.cocos2d-x.org
+ 
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+ 
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+ 
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+ ****************************************************************************/
+
 #include "Scene3DTest.h"
 
 #include "ui/CocosGUI.h"
@@ -13,20 +37,22 @@ using namespace spine;
 class SkeletonAnimationCullingFix : public SkeletonAnimation
 {
 public:
-    SkeletonAnimationCullingFix(const std::string& skeletonDataFile, const std::string& atlasFile, float scale)
-    : SkeletonAnimation(skeletonDataFile, atlasFile, scale)
+    SkeletonAnimationCullingFix()
+    : SkeletonAnimation()
     {}
     
-    virtual void drawSkeleton (const cocos2d::Mat4& transform, uint32_t transformFlags) override
+    virtual void draw(cocos2d::Renderer* renderer, const cocos2d::Mat4& transform, uint32_t transformFlags) override
     {
         glDisable(GL_CULL_FACE);
-        SkeletonAnimation::drawSkeleton(transform, transformFlags);
+        SkeletonAnimation::draw(renderer, transform, transformFlags);
         RenderState::StateBlock::invalidate(cocos2d::RenderState::StateBlock::RS_ALL_ONES);
     }
     
     static SkeletonAnimationCullingFix* createWithFile (const std::string& skeletonDataFile, const std::string& atlasFile, float scale = 1)
     {
-        SkeletonAnimationCullingFix* node = new SkeletonAnimationCullingFix(skeletonDataFile, atlasFile, scale);
+        SkeletonAnimationCullingFix* node = new SkeletonAnimationCullingFix();
+        spAtlas* atlas = spAtlas_createFromFile(atlasFile.c_str(), 0);
+        node->initWithJsonFile(skeletonDataFile, atlas, scale);
         node->autorelease();
         return node;
     }
@@ -120,7 +146,7 @@ enum GAME_SCENE {
     SCENE_COUNT,
 };
 
-/** Define the layers in scene, layer seperated by camera mask. */
+/** Define the layers in scene, layer separated by camera mask. */
 enum SCENE_LAYER {
     LAYER_BACKGROUND = 0,
     LAYER_DEFAULT,
@@ -144,10 +170,10 @@ enum GAME_CAMERAS_ORDER {
 };
 
 /*
- Defined s_CF and s_CM to avoid force convertion when call Camera::setCameraFlag
+ Defined s_CF and s_CM to avoid force conversion when call Camera::setCameraFlag
  and Node::setCameraMask.
  
- Useage:
+ Usage:
  -   Camera::setCameraFlag(s_CF[<SCENE_LAYER_INDEX>]);
  -   Node::setCameraMask(s_CM[<SCENE_LAYER_INDEX>]);
  
@@ -249,7 +275,7 @@ bool Scene3DTestScene::init()
         ca = _gameCameras[CAMERA_WORLD_3D_SCENE] =
             Camera::createPerspective(60,
                                       visibleSize.width/visibleSize.height,
-                                      0.1,
+                                      0.1f,
                                       200);
         ca->setDepth(CAMERA_WORLD_3D_SCENE);
         ca->setName(s_CameraNames[CAMERA_WORLD_3D_SCENE]);
@@ -338,7 +364,7 @@ bool Scene3DTestScene::init()
         _descDlg->setVisible(false);
 
         ////////////////////////////////////////////////////////////////////////
-        // add touch envent callback
+        // add touch event callback
         auto listener = EventListenerTouchOneByOne::create();
         listener->onTouchBegan = CC_CALLBACK_2(Scene3DTestScene::onTouchBegan, this);
         listener->onTouchEnded = CC_CALLBACK_2(Scene3DTestScene::onTouchEnd, this);
@@ -369,8 +395,8 @@ void Scene3DTestScene::createWorld3D()
     Texture2D::TexParams tRepeatParams;
     tRepeatParams.magFilter = GL_LINEAR;
     tRepeatParams.minFilter = GL_LINEAR;
-    tRepeatParams.wrapS = GL_MIRRORED_REPEAT;
-    tRepeatParams.wrapT = GL_MIRRORED_REPEAT;
+    tRepeatParams.sAddressMode = GL_MIRRORED_REPEAT;
+    tRepeatParams.tAddressMode = GL_MIRRORED_REPEAT;
     _textureCube->setTexParameters(tRepeatParams);
     
     // pass the texture sampler to our custom shader
@@ -380,7 +406,6 @@ void Scene3DTestScene::createWorld3D()
     _skyBox = Skybox::create();
     _skyBox->setCameraMask(s_CM[LAYER_BACKGROUND]);
     _skyBox->setTexture(_textureCube);
-    _skyBox->setScale(700.f);
 
     // create terrain
     Terrain::DetailMap r("TerrainTest/dirt.jpg");
@@ -393,7 +418,7 @@ void Scene3DTestScene::createWorld3D()
     _terrain = Terrain::create(data,Terrain::CrackFixedType::SKIRT);
     _terrain->setMaxDetailMapAmount(4);
     _terrain->setDrawWire(false);
-    
+
     _terrain->setSkirtHeightRatio(3);
     _terrain->setLODDistance(64,128,192);
     
@@ -401,7 +426,7 @@ void Scene3DTestScene::createWorld3D()
     _player = Player::create("Sprite3DTest/girl.c3b",
                              _gameCameras[CAMERA_WORLD_3D_SCENE],
                              _terrain);
-    _player->setScale(0.08);
+    _player->setScale(0.08f);
     _player->setPositionY(_terrain->getHeight(_player->getPositionX(),
                                               _player->getPositionZ()));
     
@@ -455,7 +480,7 @@ void Scene3DTestScene::createUI()
     showPlayerDlgItem->setName("showPlayerDlgItem");
     showPlayerDlgItem->setPosition(VisibleRect::left().x + 30, VisibleRect::top().y - 30);
     
-    // create discription button
+    // create description button
     TTFConfig ttfConfig("fonts/arial.ttf", 20);
     auto descItem = MenuItemLabel::create(Label::createWithTTF(ttfConfig, "Description"),
                                           [this](Ref* sender)
@@ -494,7 +519,7 @@ void Scene3DTestScene::createUI()
         cb->setSelected(true);
         if (text) cb->setName(text);
         cb->setAnchorPoint(Vec2(0, 0.5));
-        cb->setScale(0.8);
+        cb->setScale(0.8f);
         cb->addClickEventListener([this](Ref* sender)
             {
                 auto index = static_cast<Node *>(sender)->getTag();
@@ -643,6 +668,7 @@ void Scene3DTestScene::createDetailDlg()
     float margin = 10;
     
     // create dialog
+    // use Scale9Sprite as background, it won't swallow touch event
     _detailDlg = ui::Scale9Sprite::createWithSpriteFrameName("button_actived.png");
     _detailDlg->setContentSize(dlgSize);
     _detailDlg->setAnchorPoint(Vec2(0, 0.5));
@@ -702,9 +728,7 @@ void Scene3DTestScene::createDetailDlg()
     
     // add a spine ffd animation on it
     auto skeletonNode =
-        SkeletonAnimationCullingFix::createWithFile("spine/goblins-ffd.json",
-                                          "spine/goblins-ffd.atlas",
-                                          1.5f);
+        SkeletonAnimationCullingFix::createWithFile("spine/goblins-pro.json", "spine/goblins.atlas", 1.5f);
     skeletonNode->setAnimation(0, "walk", true);
     skeletonNode->setSkin("goblin");
     
@@ -723,10 +747,17 @@ void Scene3DTestScene::createDescDlg()
     float margin = 10;
     
     // first, create dialog, add title and description text on it
-    _descDlg = ui::Scale9Sprite::createWithSpriteFrameName("button_actived.png");
-    _descDlg->setContentSize(dlgSize);
-    _descDlg->setOpacity(224);
-    _descDlg->setPosition(pos);
+    // use Layout, which setTouchEnabled(true), as background, it will swallow touch event
+    auto desdDlg = ui::Layout::create();
+    desdDlg->setBackGroundImageScale9Enabled(true);
+    desdDlg->setBackGroundImage("button_actived.png", ui::Widget::TextureResType::PLIST);
+    desdDlg->setContentSize(dlgSize);
+    desdDlg->setAnchorPoint(Vec2(0.5f, 0.5f));
+    desdDlg->setOpacity(224);
+    desdDlg->setPosition(pos);
+    desdDlg->setTouchEnabled(true);
+    _descDlg = desdDlg;
+
     
     // title
     auto title = Label::createWithTTF("Description Dialog","fonts/arial.ttf",16);

@@ -1,5 +1,6 @@
 /****************************************************************************
 Copyright (c) 2015 Neo Kim (neo.kim@neofect.com)
+Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
 
 http://www.cocos2d-x.org
 
@@ -55,7 +56,7 @@ RadioButton* RadioButton::create()
 }
 
 RadioButton* RadioButton::create(const std::string& backGround,
-                           const std::string& backGroundSeleted,
+                           const std::string& backGroundSelected,
                            const std::string& cross,
                            const std::string& backGroundDisabled,
                            const std::string& frontCrossDisabled,
@@ -63,7 +64,7 @@ RadioButton* RadioButton::create(const std::string& backGround,
 {
     RadioButton *pWidget = new (std::nothrow) RadioButton;
     if (pWidget && pWidget->init(backGround,
-                                 backGroundSeleted,
+                                 backGroundSelected,
                                  cross,
                                  backGroundDisabled,
                                  frontCrossDisabled,
@@ -194,7 +195,7 @@ void RadioButtonGroup::addRadioButton(RadioButton* radioButton)
         
         if(!_allowedNoSelection && _selectedRadioButton == nullptr)
         {
-            setSelectedButton(radioButton);
+            setSelectedButtonWithoutEvent(radioButton);
         }
     }
 }
@@ -219,8 +220,16 @@ void RadioButtonGroup::removeRadioButton(RadioButton* radioButton)
         
         if(!_allowedNoSelection && _selectedRadioButton == nullptr && !_radioButtons.empty())
         {
-            setSelectedButton(0);
+            setSelectedButtonWithoutEvent(0);
         }
+    }
+}
+
+void RadioButtonGroup::removeAllRadioButtons()
+{
+    while(!_radioButtons.empty())
+    {
+        removeRadioButton(_radioButtons.at(0));
     }
 }
 
@@ -262,6 +271,17 @@ void RadioButtonGroup::setSelectedButton(int index)
 
 void RadioButtonGroup::setSelectedButton(RadioButton* radioButton)
 {
+    setSelectedButtonWithoutEvent(radioButton);
+    onChangedRadioButtonSelect(_selectedRadioButton);
+}
+
+void RadioButtonGroup::setSelectedButtonWithoutEvent(int index)
+{
+    setSelectedButtonWithoutEvent(_radioButtons.at(index));
+}
+
+void RadioButtonGroup::setSelectedButtonWithoutEvent(RadioButton* radioButton)
+{
     if(!_allowedNoSelection && radioButton == nullptr)
     {
         return;
@@ -282,7 +302,6 @@ void RadioButtonGroup::setSelectedButton(RadioButton* radioButton)
     {
         _selectedRadioButton->setSelected(true);
     }
-    onChangedRadioButtonSelect(_selectedRadioButton);
 }
 
 std::string RadioButtonGroup::getDescription() const

@@ -1,5 +1,6 @@
 /****************************************************************************
  Copyright (c) 2013 cocos2d-x.org
+ Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
 
  http://www.cocos2d-x.org
 
@@ -24,68 +25,5 @@
 
 #pragma once
 
-#include "cocos2d.h"
 #include "../BaseTest.h"
-#include <string>
-
-#include "network/CCDownloader.h"
 DEFINE_TEST_SUITE(DownloaderTests);
-
-
-class DownloaderBaseTest : public TestCase
-{
-public:
-    DownloaderBaseTest();
-    virtual std::string title() const override;
-
-    void errorCallback(const cocos2d::network::Downloader::Error& error);
-    void progressCallback(double totalToDownload, double nowDownloaded, const std::string& url, const std::string& customId);
-    void successCallback(const std::string& url, const std::string& path, const std::string& customId);
-
-protected:
-    std::shared_ptr<cocos2d::network::Downloader> _downloader;
-};
-
-//
-// ---
-//
-class DownloaderSyncTest : public DownloaderBaseTest
-{
-public:
-    CREATE_FUNC(DownloaderSyncTest);
-
-    virtual void onEnter() override;
-    virtual std::string title() const override;
-    virtual std::string subtitle() const override;
-};
-
-class DownloaderAsyncTest : public DownloaderBaseTest
-{
-public:
-    CREATE_FUNC(DownloaderAsyncTest);
-
-    virtual void onEnter() override;
-    virtual std::string title() const override;
-    virtual std::string subtitle() const override;
-};
-
-class DownloaderBatchSyncTest : public DownloaderBaseTest
-{
-public:
-    CREATE_FUNC(DownloaderBatchSyncTest);
-
-    virtual void onEnter() override;
-    virtual std::string title() const override;
-    virtual std::string subtitle() const override;
-};
-
-class DownloaderBatchAsyncTest : public DownloaderBaseTest
-{
-public:
-    CREATE_FUNC(DownloaderBatchAsyncTest);
-
-    virtual void onEnter() override;
-    virtual std::string title() const override;
-    virtual std::string subtitle() const override;
-};
-

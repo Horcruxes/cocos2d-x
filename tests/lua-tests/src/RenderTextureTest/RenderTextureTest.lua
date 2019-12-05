@@ -2,7 +2,7 @@
 -- Test #3 by David Deaco (ddeaco)
 
 --/**
---    * Impelmentation of RenderTextureSave
+--    * Implementation of RenderTextureSave
 --*/
 local function RenderTextureSave()
     local ret = createTestLayer("Touch the screen",
@@ -22,18 +22,16 @@ local function RenderTextureSave()
         target:saveToFile(png, cc.IMAGE_FORMAT_PNG)
         target:saveToFile(jpg, cc.IMAGE_FORMAT_JPEG)
 
-        local pImage = target:newImage()
+        local function callback(image)
+            local tex = cc.Director:getInstance():getTextureCache():addImage(image, png)
+            local sprite = cc.Sprite:createWithTexture(tex)
+            sprite:setScale(0.3)
+            ret:addChild(sprite)
+            sprite:setPosition(cc.p(40, 40))
+            sprite:setRotation(counter * 3)
+        end
 
-        local tex = cc.Director:getInstance():getTextureCache():addUIImage(pImage, png)
-
-        pImage:release()
-
-        local sprite = cc.Sprite:createWithTexture(tex)
-
-        sprite:setScale(0.3)
-        ret:addChild(sprite)
-        sprite:setPosition(cc.p(40, 40))
-        sprite:setRotation(counter * 3)
+        target:newImage(callback)
 
         cclog("Image saved %s and %s", png, jpg)
         counter = counter + 1
@@ -53,7 +51,7 @@ local function RenderTextureSave()
     target:retain()
     target:setPosition(cc.p(s.width / 2, s.height / 2))
 
-    -- note that the render texture is a cc.Node, and contains a sprite of its texture for convience,
+    -- note that the render texture is a cc.Node, and contains a sprite of its texture for convenience,
     -- so we can just parent it to the scene like any other cc.Node
     ret:addChild(target, -1)
 
@@ -104,20 +102,23 @@ local function RenderTextureSave()
     -- Save Image menu
     cc.MenuItemFont:setFontSize(16)
     local item1 = cc.MenuItemFont:create("Save Image")
+    item1:setAnchorPoint(1, 1)
+    item1:setPosition(VisibleRect:rightTop().x, VisibleRect:rightTop().y)
     item1:registerScriptTapHandler(saveImage)
     local item2 = cc.MenuItemFont:create("Clear")
+    item2:setAnchorPoint(1, 1)
+    item2:setPosition(VisibleRect:rightTop().x, VisibleRect:rightTop().y - item1:getContentSize().height)
     item2:registerScriptTapHandler(clearImage)
     local menu = cc.Menu:create(item1, item2)
     ret:addChild(menu)
-    menu:alignItemsVertically()
-    menu:setPosition(cc.p(VisibleRect:rightTop().x - 80, VisibleRect:rightTop().y - 30))
+    menu:setPosition(0, 0)
     return ret
 end
 
 
 
 --/**
---    * Impelmentation of RenderTextureIssue937
+--    * Implementation of RenderTextureIssue937
 --*/
 
 -- local function RenderTextureIssue937()
@@ -195,7 +196,7 @@ end
 -- end
 
 -- --/**
--- --    * Impelmentation of RenderTextureZbuffer
+-- --    * Implementation of RenderTextureZbuffer
 -- --*/
 
 -- local function RenderTextureZbuffer()
@@ -330,7 +331,7 @@ end
 
 -- sprite:setPosition(cc.p(256, 256))
 -- sprite:setOpacity(182)
--- sprite:setFlipY(1)
+-- sprite:setFlippedY(1)
 -- this:addChild(sprite, 999999)
 -- sprite:setColor(cc.c3b::GREEN)
 
@@ -522,7 +523,7 @@ end
 -- int diff = offsetof( V3F_C4B_T2F, vertices)
 -- glVertexAttribPointer(kcc.VertexAttrib_Position, 3, GL_FLOAT, GL_FALSE, kQuadSize, (void*) (offset + diff))
 
--- -- texCoods
+-- -- texCoords
 -- diff = offsetof( V3F_C4B_T2F, texCoords)
 -- glVertexAttribPointer(kcc.VertexAttrib_TexCoords, 2, GL_FLOAT, GL_FALSE, kQuadSize, (void*)(offset + diff))
 
@@ -609,6 +610,8 @@ function RenderTextureTestMain()
         -- RenderTextureTargetNode,
         -- SpriteRenderTextureBug
     }
+    Helper.index = 1
+    
     scene:addChild(RenderTextureSave())
     scene:addChild(CreateBackMenuItem())
     return scene

@@ -1,3 +1,27 @@
+/****************************************************************************
+ Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
+ 
+ http://www.cocos2d-x.org
+ 
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+ 
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+ 
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+ ****************************************************************************/
+
 #include "UITextTest.h"
 
 USING_NS_CC;
@@ -10,7 +34,9 @@ UITextTests::UITextTests()
     ADD_TEST_CASE(UITextTest_LineWrap);
     ADD_TEST_CASE(UILabelTest_Effect);
     ADD_TEST_CASE(UITextTest_TTF);
-    ADD_TEST_CASE(UITextTest_IgnoreConentSize);
+    ADD_TEST_CASE(UITextTest_IgnoreContentSize);
+    ADD_TEST_CASE(UITextTest_Clone);
+    ADD_TEST_CASE(Issue16073Test);
 }
 
 // UITextTest
@@ -59,7 +85,7 @@ bool UITextTest_LineWrap::init()
         Text* text = Text::create("TextArea Widget can line wrap",
                                   "AmericanTypewriter",32);
         text->ignoreContentAdaptWithSize(false);
-        text->setContentSize(Size(280, 150));
+        text->setContentSize(Size(280.0f, 150.0f));
         text->setTextHorizontalAlignment(TextHAlignment::CENTER);
         text->setTouchScaleChangeEnabled(true);
         text->setTouchEnabled(true);
@@ -69,10 +95,10 @@ bool UITextTest_LineWrap::init()
             {
                 if ((int)text->getContentSize().width == 280)
                 {
-                    text->setContentSize(Size(380,100));
+                    text->setContentSize(Size(380.0f,100.0f));
                 }else
                 {
-                    text->setContentSize(Size(280, 150));
+                    text->setContentSize(Size(280.0f, 150.0f));
                 }
             }
         });
@@ -152,8 +178,8 @@ bool UILabelTest_Effect::init()
         auto disableOutlineBtn= Button::create();
         disableOutlineBtn->setTitleText("Disable outline");
         disableOutlineBtn->setTitleFontName("fonts/Marker Felt.ttf");
-        disableOutlineBtn->setPosition(Vec2(widgetSize.width * 0.3,
-                                 widgetSize.height * 0.7));
+        disableOutlineBtn->setPosition(Vec2(widgetSize.width * 0.3f,
+                                 widgetSize.height * 0.7f));
         disableOutlineBtn->setPressedActionEnabled(true);
         disableOutlineBtn->addClickEventListener([=](Ref*){
             outline_label->disableEffect(LabelEffect::OUTLINE);
@@ -167,7 +193,7 @@ bool UILabelTest_Effect::init()
 
         auto disableGlowBtn = (Button*)disableOutlineBtn->clone();
         disableGlowBtn->setPosition(disableOutlineBtn->getPosition()
-                                    + Vec2(buttonWidth + 40,0));
+                                    + Vec2(buttonWidth + 40,0.0f));
         disableGlowBtn->setTitleText("Disable Glow");
         disableGlowBtn->addClickEventListener([=](Ref*){
             glow_label->disableEffect(LabelEffect::GLOW);
@@ -176,7 +202,7 @@ bool UILabelTest_Effect::init()
 
         auto disableShadowBtn = (Button*)disableGlowBtn->clone();
         disableShadowBtn->setPosition(disableGlowBtn->getPosition()
-                                      + Vec2(buttonWidth + 40,0));
+                                      + Vec2(buttonWidth + 40,0.0f));
         disableShadowBtn->setTitleText("Disable Shadow");
         disableShadowBtn->addClickEventListener([=](Ref*){
             shadow_label->disableEffect(LabelEffect::SHADOW);
@@ -218,33 +244,33 @@ bool UITextTest_TTF::init()
     return false;
 }
 
-// UITextTest_IgnoreConentSize
+// UITextTest_IgnoreContentSize
 
-bool UITextTest_IgnoreConentSize::init()
+bool UITextTest_IgnoreContentSize::init()
 {
     if (UIScene::init())
     {
         Size widgetSize = _widget->getContentSize();
 
-        Text* leftText = Text::create("ignore conent",
+        Text* leftText = Text::create("ignore content",
                                    "fonts/Marker Felt.ttf",10);
         leftText->setPosition(Vec2(widgetSize.width / 2.0f - 50,
                                 widgetSize.height / 2.0f));
         leftText->ignoreContentAdaptWithSize(false);
-        leftText->setTextAreaSize(Size(60,60));
+        leftText->setTextAreaSize(Size(60.0f,60.0f));
         leftText->setString("Text line with break\nText line with break\nText line with break\nText line with break\n");
         leftText->setTouchScaleChangeEnabled(true);
         leftText->setTouchEnabled(true);
         _uiLayer->addChild(leftText);
 
 
-        Text* rightText = Text::create("ignore conent",
+        Text* rightText = Text::create("ignore content",
                                       "fonts/Marker Felt.ttf",10);
         rightText->setPosition(Vec2(widgetSize.width / 2.0f + 50,
                                    widgetSize.height / 2.0f));
         rightText->setString("Text line with break\nText line with break\nText line with break\nText line with break\n");
         //note:setTextAreaSize must be used with ignoreContentAdaptWithSize(false)
-        rightText->setTextAreaSize(Size(100,30));
+        rightText->setTextAreaSize(Size(100.0f,30.0f));
         rightText->ignoreContentAdaptWithSize(false);
         _uiLayer->addChild(rightText);
 
@@ -263,3 +289,52 @@ bool UITextTest_IgnoreConentSize::init()
     }
     return false;
 }
+
+// UITextTest_IgnoreContentSize
+
+bool UITextTest_Clone::init()
+{
+    if (UIScene::init())
+    {
+        Size widgetSize = _widget->getContentSize();
+
+        Text* singleText = Text::create("ignore content",
+            "fonts/Marker Felt.ttf", 30);
+        singleText->setPosition(Vec2(widgetSize.width / 2.0f - 80,
+            widgetSize.height / 2.0f));
+        singleText->setString("CHUKONG");
+        singleText->setTouchScaleChangeEnabled(true);
+        singleText->setTouchEnabled(true);
+        singleText->enableOutline(Color4B(255,0,0,100), 10);
+        singleText->enableShadow(Color4B::YELLOW, Size(2,-2), 0);
+        _uiLayer->addChild(singleText);
+
+        auto cloneText = singleText->clone();
+        cloneText->setPosition(Vec2(widgetSize.width / 2.0f + 80,
+            widgetSize.height / 2.0f));
+        _uiLayer->addChild(cloneText);
+
+        return true;
+    }
+    return false;
+}
+
+// Issue16073Test
+
+bool Issue16073Test::init()
+{
+    if (UIScene::init())
+    {
+        Size widgetSize = _widget->getContentSize();
+
+        Text* singleText = Text::create("mwhahaha\360", "Verdana", 40);
+
+        singleText->setPosition(Vec2(widgetSize.width / 2.0f - 80,
+                                     widgetSize.height / 2.0f));
+        _uiLayer->addChild(singleText);
+
+        return true;
+    }
+    return false;
+}
+

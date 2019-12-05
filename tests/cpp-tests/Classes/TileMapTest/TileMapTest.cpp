@@ -1,5 +1,30 @@
+/****************************************************************************
+ Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
+ 
+ http://www.cocos2d-x.org
+ 
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+ 
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+ 
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+ ****************************************************************************/
+
 #include "TileMapTest.h"
 #include "../testResource.h"
+
 
 USING_NS_CC;
 
@@ -30,6 +55,7 @@ TileMapTests::TileMapTests()
     ADD_TEST_CASE(TMXIsoTest1);
     ADD_TEST_CASE(TMXIsoTest2);
     ADD_TEST_CASE(TMXUncompressedTest);
+    ADD_TEST_CASE(TMXCvsFormatTest);
     ADD_TEST_CASE(TMXHexTest);
     ADD_TEST_CASE(TMXReadWriteTest);
     ADD_TEST_CASE(TMXTilesetTest);
@@ -47,6 +73,13 @@ TileMapTests::TileMapTests()
     ADD_TEST_CASE(TMXBug987);
     ADD_TEST_CASE(TMXBug787);
     ADD_TEST_CASE(TMXGIDObjectsTest);
+    ADD_TEST_CASE(TMXHexOddXTest);
+    ADD_TEST_CASE(TMXHexEvenXTest);
+    ADD_TEST_CASE(TMXHexOddYTest);
+    ADD_TEST_CASE(TMXHexEvenYTest);
+    ADD_TEST_CASE(TMXHexAxisXTest);
+    ADD_TEST_CASE(Issue16105Test);
+    ADD_TEST_CASE(Issue16512Test);
 }
 
 TileDemo::TileDemo()
@@ -54,14 +87,16 @@ TileDemo::TileDemo()
     // fix bug #486, #419.
     // "test" is the default value in Director::setGLDefaultValues()
     // but TransitionTest may setDepthTest(false), we should revert it here
-    Director::getInstance()->setDepthTest(true);
+    Director::getInstance()->getRenderer()->setDepthTest(true);
+    Director::getInstance()->getRenderer()->setDepthWrite(true);
+    Director::getInstance()->getRenderer()->setDepthCompareFunction(backend::CompareFunction::LESS_EQUAL);
 
     auto listener = EventListenerTouchAllAtOnce::create();
     listener->onTouchesMoved = CC_CALLBACK_2(TileDemo::onTouchesMoved, this);
     _eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
 }
 
-TileDemo::~TileDemo(void)
+TileDemo::~TileDemo()
 {
 }
 
@@ -78,7 +113,8 @@ std::string TileDemo::subtitle() const
 void TileDemo::onExit()
 {
     TestCase::onExit();
-    Director::getInstance()->setDepthTest(false);
+    Director::getInstance()->getRenderer()->setDepthTest(false);
+    Director::getInstance()->getRenderer()->setDepthWrite(false);
 }
 
 void TileDemo::onTouchesMoved(const std::vector<Touch*>& touches, Event  *event)
@@ -111,7 +147,7 @@ TileMapTest::TileMapTest()
     
     addChild(map, 0, kTagTileMap);
     
-    map->setAnchorPoint( Vec2(0, 0.5f) );
+    map->setAnchorPoint( Vec2(0.0f, 0.5f) );
 
     auto scale = ScaleBy::create(4, 0.8f);
     auto scaleBack = scale->reverse();
@@ -347,17 +383,19 @@ TMXOrthoTest4::TMXOrthoTest4()
         child->getTexture()->setAntiAliasTexParameters();
     }
     
-    map->setAnchorPoint(Vec2(0, 0));
+    map->setAnchorPoint(Vec2(0.0f, 0.0f));
 
     auto layer = map->getLayer("Layer 0");
     auto s = layer->getLayerSize();
+
+    layer->setOpacity(128);
     
     Sprite* sprite;
-    sprite = layer->getTileAt(Vec2(0,0));
+    sprite = layer->getTileAt(Vec2(0.0f,0.0f));
     sprite->setScale(2);
-    sprite = layer->getTileAt(Vec2(s.width-1,0));
+    sprite = layer->getTileAt(Vec2(s.width-1,0.0f));
     sprite->setScale(2);
-    sprite = layer->getTileAt(Vec2(0,s.height-1));
+    sprite = layer->getTileAt(Vec2(0.0f,s.height-1));
     sprite->setScale(2);
     sprite = layer->getTileAt(Vec2(s.width-1,s.height-1));
     sprite->setScale(2);
@@ -374,10 +412,10 @@ void TMXOrthoTest4::removeSprite(float dt)
     auto layer = map->getLayer("Layer 0");
     auto s = layer->getLayerSize();
 
-    auto sprite = layer->getTileAt( Vec2(s.width-1,0) );
+    auto sprite = layer->getTileAt( Vec2(s.width-1,0.0f) );
     auto sprite2 = layer->getTileAt(Vec2(s.width-1, s.height-1));
     layer->removeChild(sprite, true);
-    auto sprite3 = layer->getTileAt(Vec2(2, s.height-1));
+    auto sprite3 = layer->getTileAt(Vec2(2.0f, s.height-1));
     layer->removeChild(sprite3, true);
     layer->removeChild(sprite2, true);
 }
@@ -424,7 +462,7 @@ TMXReadWriteTest::TMXReadWriteTest()
     tile2->setAnchorPoint( Vec2(0.5f, 0.5f) );
     tile3->setAnchorPoint( Vec2(0.5f, 0.5f) );
 
-    auto move = MoveBy::create(0.5f, Vec2(0,160));
+    auto move = MoveBy::create(0.5f, Vec2(0.0f,160.0f));
     auto rotate = RotateBy::create(2, 360);
     auto scale = ScaleBy::create(2, 5);
     auto opacity = FadeOut::create(2);
@@ -667,14 +705,14 @@ TMXTilesetTest::TMXTilesetTest()
 {
     auto map = TMXTiledMap::create("TileMaps/orthogonal-test5.tmx");
     addChild(map, 0, kTagTileMap);
-    
+
     Size CC_UNUSED s = map->getContentSize();
     CCLOG("ContentSize: %f, %f", s.width,s.height);
-    
+
     TMXLayer* layer;
     layer = map->getLayer("Layer 0");
     layer->getTexture()->setAntiAliasTexParameters();
-    
+
     layer = map->getLayer("Layer 1");
     layer->getTexture()->setAntiAliasTexParameters();
 
@@ -689,6 +727,37 @@ std::string TMXTilesetTest::title() const
 
 //------------------------------------------------------------------
 //
+// TMXCvsFormatTest
+//
+//------------------------------------------------------------------
+
+TMXCvsFormatTest::TMXCvsFormatTest()
+{
+    auto map = TMXTiledMap::create("TileMaps/orthogonal-test5-csv.tmx");
+    CCASSERT(map, "Map was not created. Probably failed to parse!");
+    addChild(map, 0, kTagTileMap);
+
+    Size CC_UNUSED s = map->getContentSize();
+    CCLOG("ContentSize: %f, %f", s.width,s.height);
+
+    TMXLayer* layer;
+    layer = map->getLayer("Layer 0");
+    layer->getTexture()->setAntiAliasTexParameters();
+
+    layer = map->getLayer("Layer 1");
+    layer->getTexture()->setAntiAliasTexParameters();
+
+    layer = map->getLayer("Layer 2");
+    layer->getTexture()->setAntiAliasTexParameters();
+}
+
+std::string TMXCvsFormatTest::title() const
+{
+    return "TMX CSV Parsing test";
+}
+
+//------------------------------------------------------------------
+//
 // TMXOrthoObjectsTest
 //
 //------------------------------------------------------------------
@@ -696,10 +765,10 @@ TMXOrthoObjectsTest::TMXOrthoObjectsTest()
 {
     auto map = TMXTiledMap::create("TileMaps/ortho-objects.tmx");
     addChild(map, -1, kTagTileMap);
-    
+
     Size CC_UNUSED s = map->getContentSize();
     CCLOG("ContentSize: %f, %f", s.width,s.height);
-    
+
     auto group = map->getObjectGroup("Object Group 1");
     auto& objects = group->getObjects();
 
@@ -707,18 +776,18 @@ TMXOrthoObjectsTest::TMXOrthoObjectsTest()
     CCLOG("%s", objectsVal.getDescription().c_str());
 
     auto drawNode = DrawNode::create();
-    
+
     for (auto& obj : objects)
     {
         ValueMap& dict = obj.asValueMap();
-        
+
         float x = dict["x"].asFloat();
         float y = dict["y"].asFloat();
         float width = dict["width"].asFloat();
         float height = dict["height"].asFloat();
-        
+
         Color4F color(1.0, 1.0, 1.0, 1.0);
-        
+
         drawNode->drawLine( Vec2(x, y), Vec2((x+width), y), color );
         drawNode->drawLine( Vec2((x+width), y), Vec2((x+width), (y+height)), color );
         drawNode->drawLine( Vec2((x+width), (y+height)), Vec2(x, (y+height)), color );
@@ -813,7 +882,7 @@ TMXResizeTest::TMXResizeTest()
     {
         for (unsigned int x = 0; x < ls.width; x++) 
         {
-            layer->setTileGID(1, Vec2( x, y ) );
+            layer->setTileGID(1, Vec2( (float)x, (float)y ) );
         }
     }        
 }
@@ -836,22 +905,25 @@ std::string TMXResizeTest::subtitle() const
 //------------------------------------------------------------------
 TMXIsoZorder::TMXIsoZorder()
 {
+    Director::getInstance()->getRenderer()->setDepthTest(false);
     auto map = TMXTiledMap::create("TileMaps/iso-test-zorder.tmx");
     addChild(map, 0, kTagTileMap);
 
     auto s = map->getContentSize();
     CCLOG("ContentSize: %f, %f", s.width,s.height);
-    map->setPosition(Vec2(-s.width/2,0));
+    map->setPosition(Vec2(-s.width/2,0.0f));
     
     _tamara = Sprite::create(s_pathSister1);
     map->addChild(_tamara, (int)map->getChildren().size() );
+    
     _tamara->retain();
     int mapWidth = map->getMapSize().width * map->getTileSize().width;
-    _tamara->setPosition(CC_POINT_PIXELS_TO_POINTS(Vec2( mapWidth/2,0)));
-    _tamara->setAnchorPoint(Vec2(0.5f,0));
+    _tamara->setPosition(CC_POINT_PIXELS_TO_POINTS(Vec2( mapWidth/2.0f,0.0f)));
+    _tamara->setScale(0.5);
+    _tamara->setAnchorPoint(Vec2(0.5f,0.0f));
 
     
-    auto move = MoveBy::create(10, Vec2(300,250));
+    auto move = MoveBy::create(10, Vec2(300.0f,250.0f));
     auto back = move->reverse();
     auto seq = Sequence::create(move, back,nullptr);
     _tamara->runAction( RepeatForever::create(seq) );
@@ -877,11 +949,11 @@ void TMXIsoZorder::repositionSprite(float dt)
     auto map = getChildByTag(kTagTileMap);
     
     // there are only 4 layers. (grass and 3 trees layers)
-    // if tamara < 48, z=4
-    // if tamara < 96, z=3
-    // if tamara < 144,z=2
+    // if tamara < 30, z=4
+    // if tamara < 60, z=3
+    // if tamara < 90,z=2
     
-    int newZ = 4 - (p.y / 48);
+    int newZ = 4 - (static_cast<int>(p.y) / 30);
     newZ = std::max(newZ,0);
     
     map->reorderChild(_tamara, newZ);    
@@ -914,10 +986,10 @@ TMXOrthoZorder::TMXOrthoZorder()
     _tamara = Sprite::create(s_pathSister1);
     map->addChild(_tamara,  (int)map->getChildren().size());
     _tamara->retain();
-    _tamara->setAnchorPoint(Vec2(0.5f,0));
+    _tamara->setAnchorPoint(Vec2(0.5f,0.0f));
 
     
-    auto move = MoveBy::create(10, Vec2(400,450));
+    auto move = MoveBy::create(10, Vec2(400.0f,450.0f));
     auto back = move->reverse();
     auto seq = Sequence::create(move, back,nullptr);
     _tamara->runAction( RepeatForever::create(seq));
@@ -970,7 +1042,7 @@ TMXIsoVertexZ::TMXIsoVertexZ()
     addChild(map, 0, kTagTileMap);
     
     auto s = map->getContentSize();
-    map->setPosition( Vec2(-s.width/2,0) );
+    map->setPosition( Vec2(-s.width/2,0.0f) );
     CCLOG("ContentSize: %f, %f", s.width,s.height);
     
     // because I'm lazy, I'm reusing a tile as an sprite, but since this method uses vertexZ, you
@@ -1009,14 +1081,17 @@ void TMXIsoVertexZ::onEnter()
     
     // TIP: 2d projection should be used
     Director::getInstance()->setProjection(Director::Projection::_2D);
-    Director::getInstance()->setDepthTest(true);
+   Director::getInstance()->getRenderer()->setDepthTest(true);
+   Director::getInstance()->getRenderer()->setDepthWrite(true);
 }
 
 void TMXIsoVertexZ::onExit()
 {
     // At exit use any other projection. 
     Director::getInstance()->setProjection(Director::Projection::DEFAULT);
-    Director::getInstance()->setDepthTest(false);
+    Director::getInstance()->getRenderer()->setDepthTest(false);
+    Director::getInstance()->getRenderer()->setDepthWrite(false);
+
     TileDemo::onExit();
 }
 
@@ -1080,14 +1155,17 @@ void TMXOrthoVertexZ::onEnter()
     
     // TIP: 2d projection should be used
     Director::getInstance()->setProjection(Director::Projection::_2D);
-    Director::getInstance()->setDepthTest(true);
+    Director::getInstance()->getRenderer()->setDepthTest(true);
+    Director::getInstance()->getRenderer()->setDepthWrite(true);
+
 }
 
 void TMXOrthoVertexZ::onExit()
 {
     // At exit use any other projection. 
     Director::getInstance()->setProjection(Director::Projection::DEFAULT);
-    Director::getInstance()->setDepthTest(false);
+    Director::getInstance()->getRenderer()->setDepthTest(false);
+    Director::getInstance()->getRenderer()->setDepthWrite(false);
     TileDemo::onExit();
 }
 
@@ -1112,7 +1190,7 @@ TMXIsoMoveLayer::TMXIsoMoveLayer()
     auto map = TMXTiledMap::create("TileMaps/iso-test-movelayer.tmx");
     addChild(map, 0, kTagTileMap);
     
-    map->setPosition(Vec2(-700,-50));
+    map->setPosition(Vec2(-700.0f,-50.0f));
 
     Size CC_UNUSED s = map->getContentSize();
     CCLOG("ContentSize: %f, %f", s.width,s.height);
@@ -1163,7 +1241,7 @@ TMXTilePropertyTest::TMXTilePropertyTest()
 {
     auto map = TMXTiledMap::create("TileMaps/ortho-tile-property.tmx");
     addChild(map ,0 ,kTagTileMap);
-
+    
     for(int i=1;i<=20;i++){
         for(const auto& value : map->getPropertiesForGID(i).asValueMap())
         {
@@ -1294,10 +1372,10 @@ TMXOrthoFromXMLTest::TMXOrthoFromXMLTest()
     std::string resources = "TileMaps";        // partial paths are OK as resource paths.
     std::string file = resources + "/orthogonal-test1.tmx";
 
-    auto str = __String::createWithContentsOfFile(FileUtils::getInstance()->fullPathForFilename(file.c_str()).c_str());
-    CCASSERT(str != nullptr, "Unable to open file");
+    auto fileUtils = FileUtils::getInstance();
+    std::string str = fileUtils->getStringFromFile(fileUtils->fullPathForFilename(file.c_str()));
 
-    auto map = TMXTiledMap::createWithXML(str->getCString() ,resources.c_str());
+    auto map = TMXTiledMap::createWithXML(str ,resources.c_str());
     addChild(map, 0, kTagTileMap);
 
     auto s = map->getContentSize();
@@ -1373,9 +1451,9 @@ TMXBug987::TMXBug987()
         node->getTexture()->setAntiAliasTexParameters();
     }
 
-    map->setAnchorPoint(Vec2(0, 0));
+    map->setAnchorPoint(Vec2(0.0f, 0.0f));
     auto layer = map->getLayer("Tile Layer 1");
-    layer->setTileGID(3, Vec2(2,2));
+    layer->setTileGID(3, Vec2(2.0f,2.0f));
 }
 
 std::string TMXBug987::title() const
@@ -1424,7 +1502,7 @@ TMXGIDObjectsTest::TMXGIDObjectsTest()
     Size CC_UNUSED s = map->getContentSize();
     CCLOG("Contentsize: %f, %f", s.width, s.height);
 
-    CCLOG("----> Iterating over all the group objets");
+    CCLOG("----> Iterating over all the group objects");
     
     auto drawNode = DrawNode::create();
     Color4F color(1.0, 1.0, 1.0, 1.0);
@@ -1455,4 +1533,202 @@ std::string TMXGIDObjectsTest::title() const
 std::string TMXGIDObjectsTest::subtitle() const
 {
     return "Tiles are created from an object group";
+}
+
+//------------------------------------------------------------------
+//
+// TMXHexOddXTest
+//
+//------------------------------------------------------------------
+TMXHexOddXTest::TMXHexOddXTest()
+{
+    auto color = LayerColor::create( Color4B(64,64,64,255) );
+    addChild(color, -1);
+
+    auto map = TMXTiledMap::create("TileMaps/hexagonal-mini-odd-x.tmx");
+    addChild(map, 0, kTagTileMap);
+
+    Size CC_UNUSED s = map->getContentSize();
+    CCLOG("ContentSize: %f, %f", s.width,s.height);
+
+    // Testing issue 16512 as well. Should not crash
+    auto floor = map->getLayer("Ground");
+    for (auto x = 0; x < map->getMapSize().width; x++) {
+        for (auto y = 0; y < map->getMapSize().height; y++) {
+            Vec2 p(x, y);
+            floor->getTileAt(p);
+        }
+    }
+}
+
+std::string TMXHexOddXTest::title() const
+{
+    return "TMX Hex Odd X";
+}
+
+//------------------------------------------------------------------
+//
+// TMXHexOddYTest
+//
+//------------------------------------------------------------------
+TMXHexOddYTest::TMXHexOddYTest()
+{
+    auto color = LayerColor::create( Color4B(64,64,64,255) );
+    addChild(color, -1);
+
+    auto map = TMXTiledMap::create("TileMaps/hexagonal-mini-odd-y.tmx");
+    addChild(map, 0, kTagTileMap);
+
+    Size CC_UNUSED s = map->getContentSize();
+    CCLOG("ContentSize: %f, %f", s.width,s.height);
+
+    // Testing issue 16512 as well. Should not crash
+    auto floor = map->getLayer("Ground");
+    for (auto x = 0; x < map->getMapSize().width; x++) {
+        for (auto y = 0; y < map->getMapSize().height; y++) {
+            Vec2 p(x, y);
+            floor->getTileAt(p);
+        }
+    }
+}
+
+std::string TMXHexOddYTest::title() const
+{
+    return "TMX Hex Odd Y";
+}
+
+//------------------------------------------------------------------
+//
+// TMXHexEvenXTest
+//
+//------------------------------------------------------------------
+TMXHexEvenXTest::TMXHexEvenXTest()
+{
+    auto color = LayerColor::create( Color4B(64,64,64,255) );
+    addChild(color, -1);
+
+    auto map = TMXTiledMap::create("TileMaps/hexagonal-mini-even-x.tmx");
+    addChild(map, 0, kTagTileMap);
+
+    Size CC_UNUSED s = map->getContentSize();
+    CCLOG("ContentSize: %f, %f", s.width,s.height);
+
+    // Testing issue 16512 as well. Should not crash
+    auto floor = map->getLayer("Ground");
+    for (auto x = 0; x < map->getMapSize().width; x++) {
+        for (auto y = 0; y < map->getMapSize().height; y++) {
+            Vec2 p(x, y);
+            floor->getTileAt(p);
+        }
+    }
+}
+
+std::string TMXHexEvenXTest::title() const
+{
+    return "TMX Hex Even X";
+}
+
+//------------------------------------------------------------------
+//
+// TMXHexEvenYTest
+//
+//------------------------------------------------------------------
+TMXHexEvenYTest::TMXHexEvenYTest()
+{
+    auto color = LayerColor::create( Color4B(64,64,64,255) );
+    addChild(color, -1);
+
+    auto map = TMXTiledMap::create("TileMaps/hexagonal-mini-even-y.tmx");
+    addChild(map, 0, kTagTileMap);
+
+    Size CC_UNUSED s = map->getContentSize();
+    CCLOG("ContentSize: %f, %f", s.width,s.height);
+
+    // Testing issue 16512 as well. Should not crash
+    auto floor = map->getLayer("Ground");
+    for (auto x = 0; x < map->getMapSize().width; x++) {
+        for (auto y = 0; y < map->getMapSize().height; y++) {
+            Vec2 p(x, y);
+            floor->getTileAt(p);
+        }
+    }
+}
+
+std::string TMXHexEvenYTest::title() const
+{
+    return "TMX Hex Even Y";
+}
+
+//------------------------------------------------------------------
+//
+// TMXHexAxisXTest
+//
+//------------------------------------------------------------------
+TMXHexAxisXTest::TMXHexAxisXTest()
+{
+    auto color = LayerColor::create( Color4B(64,64,64,255) );
+    addChild(color, -1);
+    
+    auto map = TMXTiledMap::create("TileMaps/hexa-axis-x.tmx");
+    addChild(map, 0, kTagTileMap);
+    
+    Size CC_UNUSED s = map->getContentSize();
+    CCLOG("ContentSize: %f, %f", s.width,s.height);
+}
+
+std::string TMXHexAxisXTest::title() const
+{
+    return "The map should be same with in Tiled Editor";
+}
+
+//------------------------------------------------------------------
+//
+// Issue16105Test
+//
+//------------------------------------------------------------------
+Issue16105Test::Issue16105Test()
+{
+    auto color = LayerColor::create( Color4B(64,64,64,255) );
+    addChild(color, -1);
+
+    auto map = TMXTiledMap::create("TileMaps/issue16105.tmx");
+    addChild(map, 0, kTagTileMap);
+
+    Size CC_UNUSED s = map->getContentSize();
+    CCLOG("ContentSize: %f, %f", s.width,s.height);
+}
+
+std::string Issue16105Test::title() const
+{
+    return "Github Issue #16105";
+}
+
+//------------------------------------------------------------------
+//
+// Issue16512Test
+//
+//------------------------------------------------------------------
+Issue16512Test::Issue16512Test()
+{
+    auto color = LayerColor::create( Color4B(64,64,64,255) );
+    addChild(color, -1);
+
+    auto map = TMXTiledMap::create("TileMaps/issue_16512.tmx");
+    addChild(map, 0, kTagTileMap);
+
+    Size CC_UNUSED s = map->getContentSize();
+    CCLOG("ContentSize: %f, %f", s.width,s.height);
+
+    auto floor = map->getLayer("Floor");
+    for (auto x = 0; x < map->getMapSize().width; x++) {
+        for (auto y = 0; y < map->getMapSize().height; y++) {
+            Vec2 p(x, y);
+            floor->getTileAt(p);
+        }
+    }
+}
+
+std::string Issue16512Test::title() const
+{
+    return "Github Issue #16512. Should not crash";
 }

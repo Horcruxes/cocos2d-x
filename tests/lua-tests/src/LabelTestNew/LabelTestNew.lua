@@ -520,7 +520,7 @@ function LabelFNTGlyphDesigner.create()
     label1:setPosition(cc.p(s.width/2, s.height/2))
 
     Helper.titleLabel:setString("New Label + .FNT file")
-    Helper.subtitleLabel:setString("Testing Glyph Designer: you should see a font with shawdows and outline")
+    Helper.subtitleLabel:setString("Testing Glyph Designer: you should see a font with shadows and outline")
     return layer
 end
 
@@ -777,7 +777,7 @@ function LabelFNTUNICODELanguages.create()
     local layer = cc.Layer:create()
     Helper.initWithLayer(layer)
     Helper.titleLabel:setString("New Label + .FNT + UNICODE")
-    Helper.subtitleLabel:setString("You should see 3 differnt labels:\nIn Spanish, Chinese, and Japanese")
+    Helper.subtitleLabel:setString("You should see 3 different labels:\nIn Spanish, Chinese, and Japanese")
 
     local s = cc.Director:getInstance():getWinSize()
     
@@ -1354,9 +1354,9 @@ function LabelShadowTest.create()
     slider:loadBarTexture("cocosui/sliderTrack.png")
     slider:loadSlidBallTextures("cocosui/sliderThumb.png", "cocosui/sliderThumb.png", "")
     slider:loadProgressBarTexture("cocosui/sliderProgress.png")
-    slider:setPosition(cc.p(size.width / 2.0, size.height * 0.15 + slider:getSize().height * 2.0))
+    slider:setPosition(cc.p(size.width / 2.0, size.height * 0.15 + slider:getLayoutSize().height * 2.0))
     slider:setPercent(52)
-    slider:addEventListenerSlider(sliderEvent)
+    slider:addEventListener(sliderEvent)
     layer:addChild(slider)
 
     local slider2 = ccui.Slider:create()
@@ -1368,7 +1368,7 @@ function LabelShadowTest.create()
     slider2:setPosition(cc.p(size.width * 0.15, size.height / 2.0))
     slider2:setRotation(90)
     slider2:setPercent(52)
-    slider2:addEventListenerSlider(sliderEvent)
+    slider2:addEventListener(sliderEvent)
     layer:addChild(slider2)
 
     return layer
@@ -1734,6 +1734,8 @@ function LabelTestNew()
         LabelAlignmentTest.create,
         LabelIssue4428Test.create,
     }
+    Helper.index = 1
+    
     scene:addChild(LabelFNTColorAndOpacity.create())
     scene:addChild(CreateBackMenuItem())
     return scene

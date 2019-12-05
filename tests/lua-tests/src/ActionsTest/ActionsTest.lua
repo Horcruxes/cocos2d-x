@@ -181,7 +181,7 @@ local function ActionRotationalSkewVSStandardSkew()
     local box = cc.LayerColor:create(cc.c4b(255,255,0,255));
     box:setAnchorPoint(cc.p(0.5,0.5));
     box:setContentSize( boxSize );
-    box:ignoreAnchorPointForPosition(false);
+    box:setIgnoreAnchorPointForPosition(false);
     box:setPosition(cc.p(s.width/2, s.height - 100 - box:getContentSize().height/2));
     layer:addChild(box);
     local label = cc.Label:createWithTTF("Standard cocos2d Skew", s_markerFeltFontPath, 16);
@@ -197,7 +197,7 @@ local function ActionRotationalSkewVSStandardSkew()
     box = cc.LayerColor:create(cc.c4b(255,255,0,255));
     box:setAnchorPoint(cc.p(0.5,0.5));
     box:setContentSize(boxSize);
-    box:ignoreAnchorPointForPosition(false);
+    box:setIgnoreAnchorPointForPosition(false);
     box:setPosition(cc.p(s.width/2, s.height - 250 - box:getContentSize().height/2));
     layer:addChild(box);
     label = cc.Label:createWithTTF("Rotational Skew", s_markerFeltFontPath, 16);
@@ -824,7 +824,7 @@ local function ActionCallFuncND()
 	centerSprites(1)
 
     local function doRemoveFromParentAndCleanup(sender,table)
-        grossini:removeFromParentAndCleanup(table[1])
+        grossini:removeFromParent(true)
     end
 
     local action = cc.Sequence:create(
@@ -1056,6 +1056,7 @@ end
 local function addSprite(dt)
 	local scheduler = cc.Director:getInstance():getScheduler()
 	scheduler:unscheduleScriptEntry(Issue1305_entry)
+    Issue1305_entry = nil
 
 	spriteTmp:setPosition(cc.p(250, 250))
     Issue1305_layer:addChild(spriteTmp)
@@ -1064,9 +1065,18 @@ end
 local function Issue1305_onEnterOrExit(tag)
 	local scheduler = cc.Director:getInstance():getScheduler()
 	if tag == "enter" then
+        spriteTmp = cc.Sprite:create("Images/grossini.png")
+        spriteTmp:runAction(cc.CallFunc:create(Issue1305_log))
+        spriteTmp:retain()
+
 		Issue1305_entry = scheduler:scheduleScriptFunc(addSprite, 2, false)
 	elseif tag == "exit" then
-		scheduler:unscheduleScriptEntry(Issue1305_entry)
+        if Issue1305_entry ~= nil then
+    		scheduler:unscheduleScriptEntry(Issue1305_entry)
+            Issue1305_entry = nil
+        end
+        spriteTmp:release()
+        spriteTmp = nil
 	end
 end
 
@@ -1075,9 +1085,6 @@ local function ActionIssue1305()
 	initWithLayer(Issue1305_layer)
 
 	centerSprites(0)
-
-    spriteTmp = cc.Sprite:create("Images/grossini.png")
-    spriteTmp:runAction(cc.CallFunc:create(Issue1305_log))
 
     Issue1305_layer:registerScriptHandler(Issue1305_onEnterOrExit)
 
@@ -1254,6 +1261,7 @@ function ActionsTest()
 		ActionIssue1288_2,  
 		ActionIssue1327
     }
+    Helper.index = 1
 
 	scene:addChild(ActionManual())
 	scene:addChild(CreateBackMenuItem())

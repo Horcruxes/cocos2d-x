@@ -71,18 +71,18 @@ function Player:init()
         if self._playerState == PLAER_STATE.IDLE then
 
         elseif self._playerState == PLAER_STATE.FORWARD then
-            local newFaceDir = cc.vec3( self._targetPos.x - curPos.x, self._targetPos.y - curPos.y, self._targetPos.z - curPos.z)
+            local newFaceDir = cc.vec3sub(self._targetPos, curPos)
             newFaceDir.y = 0.0
             newFaceDir = cc.vec3normalize(newFaceDir)
-            local offset = cc.vec3(newFaceDir.x * 25.0 * dt, newFaceDir.y * 25.0 * dt, newFaceDir.z * 25.0 * dt)
-            curPos = cc.vec3(curPos.x + offset.x, curPos.y + offset.y, curPos.z + offset.z)
+            local offset = cc.vec3mul(newFaceDir, 25.0 * dt)
+            curPos = cc.vec3add(curPos, offset)
             self:setPosition3D(curPos)
         elseif self._playerState ==  PLAER_STATE.BACKWARD then
             
             local transform   = self:getNodeToWorldTransform()
             local forward_vec = cc.vec3(-transform[9], -transform[10], -transform[11])
             forward_vec = cc.vec3normalize(forward_vec)
-            self:setPosition3D(cc.vec3(curPos.x - forward_vec.x * 15 * dt, curPos.y - forward_vec.y * 15 * dt, curPos.z - forward_vec.z * 15 *dt))
+            self:setPosition3D(cc.vec3sub(curPos, cc.vec3mul(forward_vec, 15 * dt)))
         elseif self._playerState == PLAER_STATE.LEFT then
             player:setRotation3D(cc.vec3(curPos.x, curPos.y + 25 * dt, curPos.z))
         elseif self._playerState == PLAER_STATE.RIGHT then
@@ -105,10 +105,9 @@ function Player:init()
 
         local vec_offset = cc.vec4(camera_offset.x, camera_offset.y, camera_offset.z, 1)
         local transform  = self:getNodeToWorldTransform()
-        local dst = cc.vec4(0.0, 0.0, 0.0, 0.0)
-        vec_offset = mat4_transformVector(transform, vec_offset, dst)
+        vec_offset = mat4_transformVector(transform, vec_offset)
         local playerPos = self:getPosition3D()
-        self._cam:setPosition3D(cc.vec3(playerPos.x + camera_offset.x, playerPos.y + camera_offset.y, playerPos.z + camera_offset.z))
+        self._cam:setPosition3D(cc.vec3add(playerPos, camera_offset))
         self:updateState()
     end, 0)
 
@@ -179,46 +178,27 @@ function TerrainWalkThru:init()
                 local size = cc.Director:getInstance():getWinSize()
                 nearP = self._camera:unproject(size, nearP, nearP)
                 farP  = self._camera:unproject(size, farP, farP)
-                local dir = cc.vec3(farP.x - nearP.x, farP.y - nearP.y, farP.z - nearP.z)
+                local dir = cc.vec3sub(farP, nearP)
                 dir = cc.vec3normalize(dir)
 
-                local rayStep = cc.vec3(15 * dir.x, 15 * dir.y, 15 * dir.z)
-                local rayPos =  nearP
-                local rayStartPosition = nearP
-                local lastRayPosition  = rayPos
-                rayPos = cc.vec3(rayPos.x + rayStep.x, rayPos.y + rayStep.y, rayPos.z + rayStep.z)
-                -- Linear search - Loop until find a point inside and outside the terrain Vector3 
-                local height = self._terrain:getHeight(rayPos.x, rayPos.z)
+                local collisionPoint = cc.vec3(-999,-999,-999)
+                local ray =  cc.Ray:new(nearP, dir)
+                local isInTerrain = true
+                isInTerrain, collisionPoint = self._terrain:getIntersectionPoint(ray, collisionPoint)
 
-                while rayPos.y > height do
-                    lastRayPosition = rayPos 
-                    rayPos = cc.vec3(rayPos.x + rayStep.x, rayPos.y + rayStep.y, rayPos.z + rayStep.z)
-                    height = self._terrain:getHeight(rayPos.x,rayPos.z) 
+                if( not isInTerrain) then  
+                    self._player._playerState = PLAER_STATE.IDLE
+                    return
                 end
 
-                local startPosition = lastRayPosition
-                local endPosition   = rayPos
-
-                for i = 1, 32 do
-                    -- Binary search pass 
-                    local middlePoint = cc.vec3(0.5 * (startPosition.x + endPosition.x), 0.5 * (startPosition.y + endPosition.y), 0.5 * (startPosition.z + endPosition.z))
-                    if (middlePoint.y < height) then
-                        endPosition = middlePoint 
-                    else 
-                        startPosition = middlePoint
-                    end
-                end
-
-                local collisionPoint = cc.vec3(0.5 * (startPosition.x + endPosition.x), 0.5 * (startPosition.y + endPosition.y), 0.5 * (startPosition.z + endPosition.z))
                 local playerPos = self._player:getPosition3D()
-                dir = cc.vec3(collisionPoint.x - playerPos.x, collisionPoint.y - playerPos.y, collisionPoint.z - playerPos.z)
+                dir = cc.vec3sub(collisionPoint, playerPos)
                 dir.y = 0
                 dir = cc.vec3normalize(dir)
                 self._player._headingAngle =  -1 * math.acos(-dir.z)
 
                 self._player._headingAxis = vec3_cross(dir, cc.vec3(0, 0, -1), self._player._headingAxis)
                 self._player._targetPos = collisionPoint
-                -- self._player:forward()
                 self._player._playerState = PLAER_STATE.FORWARD
             end
         end
@@ -271,7 +251,7 @@ function TerrainWalkThru:init()
     end
 
     local playerPos = self._player:getPosition3D()
-    self._camera:setPosition3D(cc.vec3(playerPos.x + camera_offset.x, playerPos.y + camera_offset.y, playerPos.z + camera_offset.z))
+    self._camera:setPosition3D(cc.vec3add(playerPos, camera_offset))
     self._camera:setRotation3D(cc.vec3(-45,0,0))
 
     self:addChild(self._player)
@@ -331,50 +311,31 @@ function Scene3DTest:create3DWorld()
 
     --then, create skybox
     --create and set our custom shader
-    local shader = cc.GLProgram:createWithFilenames("Sprite3DTest/cube_map.vert", "Sprite3DTest/cube_map.frag")
-    local state  = cc.GLProgramState:create(shader)
 
+    local cmVert = cc.FileUtils:getInstance():getStringFromFile("Sprite3DTest/cube_map.vert")
+    local cmFrag = cc.FileUtils:getInstance():getStringFromFile("Sprite3DTest/cube_map.frag")
+    local program = ccb.Device:getInstance():newProgram(cmVert, cmFrag)
+    local state = ccb.ProgramState:new(program)
+    program:release()
     --create the second texture for cylinder
     self._textureCube = cc.TextureCube:create("Sprite3DTest/skybox/left.jpg", "Sprite3DTest/skybox/right.jpg",
                                        "Sprite3DTest/skybox/top.jpg", "Sprite3DTest/skybox/bottom.jpg",
                                        "Sprite3DTest/skybox/front.jpg", "Sprite3DTest/skybox/back.jpg")
 
     --set texture parameters
-    local tRepeatParams = { magFilter = gl.LINEAR , minFilter = gl.LINEAR , wrapS = gl.MIRRORED_REPEAT  , wrapT = gl.MIRRORED_REPEAT }
+    local tRepeatParams = { magFilter = ccb.SamplerFilter.LINEAR , minFilter = ccb.SamplerFilter.LINEAR , sAddressMode = ccb.SamplerAddressMode.MIRRORED_REPEAT  , tAddressMode = ccb.SamplerAddressMode.MIRRORED_REPEAT }
     self._textureCube:setTexParameters(tRepeatParams)
 
     --pass the texture sampler to our custom shader
-    state:setUniformTexture("u_cubeTex", self._textureCube)
+    local cubeTexLoc = state:getUniformLocation("u_cubeTex")
+    state:setTexture(cubeTexLoc, 0, self._textureCube:getBackendTexture())
 
     --add skybox
     self._skyBox = cc.Skybox:create()
     self._skyBox:setCameraMask(s_CM[GAME_LAYER.LAYER_SKYBOX])
     self._skyBox:setTexture(self._textureCube)
-    self._skyBox:setScale(700.0)
     self:addChild(self._skyBox)
 
-    local targetPlatform = cc.Application:getInstance():getTargetPlatform()
-    if targetPlatform == cc.PLATFORM_OS_ANDROID  or targetPlatform == cc.PLATFORM_OS_WINRT  or targetPlatform == cc.PLATFORM_OS_WP8  then
-        self._backToForegroundListener = cc.EventListenerCustom:create("event_renderer_recreated", function (eventCustom)
-
-                local state = self._skyBox:getGLProgramState()
-                local glProgram = state:getGLProgram()
-                glProgram:reset()
-                glProgram:initWithFilenames("Sprite3DTest/cube_map.vert", "Sprite3DTest/cube_map.frag")
-                glProgram:link()
-                glProgram:updateUniforms()
-                
-                self._textureCube:reloadTexture()
-                
-                local tRepeatParams = { magFilter = gl.NEAREST , minFilter = gl.NEAREST , wrapS = gl.MIRRORED_REPEAT  , wrapT = gl.MIRRORED_REPEAT }
-                self._textureCube:setTexParameters(tRepeatParams)
-                state:setUniformTexture("u_cubeTex", self._textureCube)
-                
-                self._skyBox:reload()
-                self._skyBox:setTexture(self._textureCube)
-        end)
-        cc.Director:getInstance():getEventDispatcher():addEventListenerWithFixedPriority(self._backToForegroundListener, 1)
-    end
 end
 
 function Scene3DTest:createUI()
@@ -399,7 +360,7 @@ function Scene3DTest:createUI()
     local backItem = cc.MenuItemLabel:create(cc.Label:createWithTTF(ttfConfig, "Back"))
     backItem:setPosition(cc.p(VisibleRect:right().x - 50, VisibleRect:bottom().y + 25))
 
-    local menu = cc.Menu:create(showLeftDlgItem, descItem, backItem)
+    local menu = cc.Menu:create(showLeftDlgItem, descItem)
     menu:setPosition(cc.p(0.0, 0.0))
     menu:setCameraMask(s_CM[GAME_LAYER.LAYER_UI], true)
     self:addChild(menu)
@@ -512,25 +473,26 @@ function Scene3DTest:createDetailDlg()
     self._detailDlg:addChild(title)
     
     -- add a spine ffd animation on it
-    local skeletonNode = sp.SkeletonAnimation:create("spine/goblins-ffd.json", "spine/goblins-ffd.atlas", 1.5)
-    skeletonNode:setAnimation(0, "walk", true)
-    skeletonNode:setSkin("goblin")
-
-    skeletonNode:setScale(0.25)
-    local windowSize = cc.Director:getInstance():getWinSize()
-    skeletonNode:setPosition(cc.p(dlgSize.width / 2, 20))
-    self._detailDlg:addChild(skeletonNode)
+    -- TODO coulsonwang: spine is not enable in V4.0
+--    local skeletonNode = sp.SkeletonAnimation:create("spine/goblins-pro.json", "spine/goblins.atlas", 1.5)
+--    skeletonNode:setAnimation(0, "walk", true)
+--    skeletonNode:setSkin("goblin")
+--
+--    skeletonNode:setScale(0.25)
+--    local windowSize = cc.Director:getInstance():getWinSize()
+--    skeletonNode:setPosition(cc.p(dlgSize.width / 2, 20))
+--    self._detailDlg:addChild(skeletonNode)
 
     local listener = cc.EventListenerTouchOneByOne:create()
     listener:registerScriptHandler(function (touch, event)
-        if (not skeletonNode:getDebugBonesEnabled()) then
-            skeletonNode:setDebugBonesEnabled(true)
-        elseif skeletonNode:getTimeScale() == 1 then
-            skeletonNode:setTimeScale(0.3)
-        else
-            skeletonNode:setTimeScale(1)
-            skeletonNode:setDebugBonesEnabled(false)
-        end
+--        if (not skeletonNode:getDebugBonesEnabled()) then
+--            skeletonNode:setDebugBonesEnabled(true)
+--        elseif skeletonNode:getTimeScale() == 1 then
+--            skeletonNode:setTimeScale(0.3)
+--        else
+--            skeletonNode:setTimeScale(1)
+--            skeletonNode:setDebugBonesEnabled(false)
+--        end
 
         return true
     end,cc.Handler.EVENT_TOUCH_BEGAN )
@@ -672,9 +634,12 @@ function Scene3DTestMain()
     {
         Scene3DTest.create,
     }
+    Helper.index = 1
 
     scene:addChild(Scene3DTest.create())
-    scene:addChild(CreateBackMenuItem())
+    local menu = CreateBackMenuItem()
+    menu:setCameraMask(s_CM[GAME_LAYER.LAYER_UI])
+    scene:addChild(menu)
 
     return scene
 end

@@ -184,9 +184,9 @@ function Sprite3DWithSkinTest.addNewSpriteWithCoords(parent,x,y)
         end
         animate:setTag(110)
         animate:setQuality(Sprite3DWithSkinTest._animateQuality)
-        local repeate = cc.RepeatForever:create(animate)
-        repeate:setTag(110)
-        sprite:runAction(repeate)
+        local repeatAction = cc.RepeatForever:create(animate)
+        repeatAction:setTag(110)
+        sprite:runAction(repeatAction)
     end
 end
 
@@ -813,9 +813,9 @@ function Sprite3DWithOBBPerfromanceTest:delOBBWithCount( value )
     if #self._obb >= 10 then
         for i= 1, 10 do
             table.remove(self._obb)
-        end
+        end 
         self._drawOBB:clear()
-    end
+    end 
 end
 
 function Sprite3DWithOBBPerfromanceTest:initDrawBox()
@@ -830,7 +830,7 @@ function Sprite3DWithOBBPerfromanceTest:unproject( viewProjection, viewport, src
     screen.y = screen.y * 2.0 - 1.0
     screen.z = screen.z * 2.0 - 1.0
     local inversed = cc.mat4.new(viewProjection:getInversed())
-    screen = inversed:transformVector(screen, screen)
+    screen = inversed:transformVector(screen)
     if screen.w ~= 0.0 then
         screen.x = screen.x / screen.w
         screen.y = screen.y / screen.w
@@ -905,7 +905,7 @@ end
 function Sprite3DWithOBBPerfromanceTest.create()
     local layer = Sprite3DWithOBBPerfromanceTest.new()
     Helper.initWithLayer(layer)
-    Helper.titleLabel:setString("OBB Collison Perfromance Test")
+    Helper.titleLabel:setString("OBB Collision Perfromance Test")
     return layer
 end
 
@@ -941,7 +941,7 @@ function Sprite3DMirrorTest.create()
     sprite = cc.Sprite3D:create(fileName)
     sprite:setScale(5)
     sprite:setScaleX(-5)
-    sprite:setCullFace(gl.FRONT)
+    sprite:setCullFace(ccb.CullMode.FRONT)
     sprite:setRotation3D({x = 0, y = 180,z = 0})
     layer:addChild(sprite)
     sprite:setPosition( cc.p( size.width/2 + 80, size.height/2))
@@ -1002,7 +1002,7 @@ function AsyncLoadSprite3DTest:onEnter()
     ttfConfig.fontFilePath = "fonts/arial.ttf"
     ttfConfig.fontSize = 15
 
-    local paths = {"Sprite3DTest/boss.obj", "Sprite3DTest/girl.c3b", "Sprite3DTest/orc.c3b", "Sprite3DTest/ReskinGirl.c3b", "Sprite3DTest/axe.c3b"}
+    local paths = {"Sprite3DTest/girl.c3b", "Sprite3DTest/orc.c3b", "Sprite3DTest/ReskinGirl.c3b", "Sprite3DTest/axe.c3b"}
 
     local label1 = cc.Label:createWithTTF(ttfConfig,"AsyncLoad Sprite3D")
     local item1 = cc.MenuItemLabel:create(label1)
@@ -1123,21 +1123,26 @@ function Sprite3DCubeMapTest:addNewSpriteWithCoords(pos)
     --create a teapot
     self._teapot = cc.Sprite3D:create("Sprite3DTest/teapot.c3b")
 
-    local shader = cc.GLProgram:createWithFilenames("Sprite3DTest/cube_map.vert", "Sprite3DTest/cube_map.frag")
-    local state  = cc.GLProgramState:create(shader)
-
+    local vertexShader = cc.FileUtils:getInstance():getStringFromFile("Sprite3DTest/cube_map.vert")
+    local fragmentShader = cc.FileUtils:getInstance():getStringFromFile("Sprite3DTest/cube_map.frag")
+    local program = ccb.Device:getInstance():newProgram(vertexShader, fragmentShader)
+    local programState = ccb.ProgramState:new(program)
+    program:release()
+    
     self._textureCube = cc.TextureCube:create("Sprite3DTest/skybox/left.jpg", "Sprite3DTest/skybox/right.jpg",
         "Sprite3DTest/skybox/top.jpg", "Sprite3DTest/skybox/bottom.jpg",
         "Sprite3DTest/skybox/front.jpg", "Sprite3DTest/skybox/back.jpg")
 
     --set texture parameters
-    local tRepeatParams = { magFilter=gl.LINEAR , minFilter=gl.LINEAR , wrapS=gl.MIRRORED_REPEAT  , wrapT=gl.MIRRORED_REPEAT }
+    local tRepeatParams = { magFilter=ccb.SamplerFilter.LINEAR , minFilter=ccb.SamplerFilter.LINEAR , sAddressMode=ccb.SamplerAddressMode.MIRROR_REPEAT  , tAddressMode=ccb.SamplerAddressMode.MIRROR_REPEAT }
     self._textureCube:setTexParameters(tRepeatParams)
 
     --pass the texture sampler to our custom shader
-    state:setUniformTexture("u_cubeTex", self._textureCube)
+    local locCubeTex = programState:getUniformLocation("u_cubeTex")
+    local cubeTexture = self._textureCube:getBackendTexture()
+    programState:setTexture(locCubeTex, 0, cubeTexture)
 
-    self._teapot:setGLProgramState(state)
+    self._teapot:setProgramState(programState)
     self._teapot:setPosition3D(cc.vec3(0, -5, 0))
     self._teapot:setRotation3D(cc.vec3(-90, 180, 0))
 
@@ -1159,19 +1164,6 @@ function Sprite3DCubeMapTest:addNewSpriteWithCoords(pos)
         "a_blendIndex",
     }
 
-    local offset = 0
-    local attributeCount = self._teapot:getMesh():getMeshVertexAttribCount()
-    for i = 1, attributeCount do
-        local meshattribute = self._teapot:getMesh():getMeshVertexAttribute(i - 1)
-        state:setVertexAttribPointer(attributeNames[meshattribute.vertexAttrib+1],
-            meshattribute.size,
-            meshattribute.type,
-            false,
-            self._teapot:getMesh():getVertexSizeInBytes(),
-            offset)
-        offset = offset + meshattribute.attribSizeBytes
-    end
-
     self:addChild(self._teapot)
 
     --config skybox
@@ -1179,33 +1171,154 @@ function Sprite3DCubeMapTest:addNewSpriteWithCoords(pos)
 
     self._skyBox:setTexture(self._textureCube)
     self:addChild(self._skyBox)
-    self._skyBox:setScale(700)
 
     self:addChild(camera)
     self:setCameraMask(2)
 
-    local targetPlatform = cc.Application:getInstance():getTargetPlatform()
-    if targetPlatform == cc.PLATFORM_OS_ANDROID  or targetPlatform == cc.PLATFORM_OS_WINRT  or targetPlatform == cc.PLATFORM_OS_WP8  then
-        self._backToForegroundListener = cc.EventListenerCustom:create("event_renderer_recreated", function (eventCustom)
-                
-            local state = self._teapot:getGLProgramState()
-            local glProgram = state:getGLProgram()
-            glProgramreset()
-            glProgram:initWithFilenames("Sprite3DTest/cube_map.vert", "Sprite3DTest/cube_map.frag")
-            glProgram:link()
-            glProgram:updateUniforms()
+end
 
-            self._textureCube:reloadTexture()
+----------------------------------------
+----Sprite3DNormalMappingTest
+----------------------------------------
+local Sprite3DNormalMappingTest = class("Sprite3DNormalMappingTest", function ()
+    local layer = cc.Layer:create()
+    Helper.initWithLayer(layer)
+    return layer
+end)
 
-            local tRepeatParams = { magFilter=gl.NEAREST , minFilter=gl.NEAREST , wrapS=gl.MIRRORED_REPEAT  , wrapT=gl.MIRRORED_REPEAT }
-            self._textureCube:setTexParameters(tRepeatParams)
-            state:setUniformTexture("u_cubeTex", self._textureCube)
+function Sprite3DNormalMappingTest:ctor()
+    -- body
+    self:init()
+end
 
-            self._skyBox:reload()
-            self._skyBox:setTexture(self._textureCube)
-        end)
-        cc.Director:getInstance():getEventDispatcher():addEventListenerWithFixedPriority(self._backToForegroundListener, -1)
+function Sprite3DNormalMappingTest:init()
+    Helper.titleLabel:setString(self:title())
+    Helper.subtitleLabel:setString(self:subtitle())
+
+    self:registerScriptHandler(function (event)
+        if event == "enter" then
+            self:onEnter()
+        elseif event == "exit" then
+            self:onExit()
+        end
+    end)
+end
+
+function Sprite3DNormalMappingTest:title()
+    return "Testing Normal Mapping"
+end
+
+function Sprite3DNormalMappingTest:subtitle()
+    return ""
+end
+
+function Sprite3DNormalMappingTest:onEnter()
+
+    local sprite3d = cc.Sprite3D:create("Sprite3DTest/sphere.c3b")
+    sprite3d:setScale(2.0)
+    sprite3d:setPosition(cc.p(-30,0))
+    sprite3d:setRotation3D(cc.vec3(90.0, 0.0, 0.0))
+    sprite3d:setTexture("Sprite3DTest/brickwork-texture.jpg")
+    sprite3d:setCameraMask(2)
+    self:addChild(sprite3d)
+
+    local sprite3dBumped = cc.Sprite3D:create("Sprite3DTest/sphere_bumped.c3b")
+    sprite3dBumped:setScale(20.0)
+    sprite3dBumped:setPosition(cc.p(30,0))
+    sprite3dBumped:setRotation3D(cc.vec3(90.0, 0.0, 0.0))
+    sprite3dBumped:setCameraMask(2)
+    self:addChild(sprite3dBumped)
+
+    local radius = 100.0
+    local angle = 0.0
+    local reverseDir = false
+    local light = cc.PointLight:create(cc.vec3(0.0, 0.0, 0.0), cc.c3b(255, 255, 255), 1000.0)
+    local function lightUpdate()
+        light:setPosition3D(cc.vec3(radius * math.cos(angle), 0.0, radius * math.sin(angle)))
+        if reverseDir == true then
+            angle = angle - 0.01
+            if angle < 0.0 then
+                reverseDir = false
+            end
+        else
+            angle = angle + 0.01
+            if 3.14159 < angle then
+                reverseDir = true
+            end
+        end
     end
+
+    local seq = cc.Sequence:create(cc.CallFunc:create(lightUpdate))
+    light:runAction(cc.RepeatForever:create(seq))
+    self:addChild(light)
+
+    local visibleSize = cc.Director:getInstance():getVisibleSize()
+    local camera = cc.Camera:createPerspective(60, visibleSize.width / visibleSize.height, 10, 1000)
+    camera:setPosition3D(cc.vec3(0.0, 0.0, 100.0))
+    camera:lookAt(cc.vec3(0.0, 0.0, 0.0))
+    camera:setCameraFlag(cc.CameraFlag.USER1)
+    self:addChild(camera)
+
+end
+
+function Sprite3DNormalMappingTest:onExit()
+end
+
+----------------------------------------
+----Sprite3DMaterialTest
+----------------------------------------
+local Sprite3DMaterialTest = class("Sprite3DMaterialTest", function ()
+    local layer = cc.Layer:create()
+    Helper.initWithLayer(layer)
+    return layer
+end)
+
+function Sprite3DMaterialTest:ctor()
+    -- body
+    self:init()
+end
+
+function Sprite3DMaterialTest:init()
+    Helper.titleLabel:setString(self:title())
+    Helper.subtitleLabel:setString(self:subtitle())
+
+    self:registerScriptHandler(function (event)
+        if event == "enter" then
+            self:onEnter()
+        elseif event == "exit" then
+            self:onExit()
+        end
+    end)
+end
+
+function Sprite3DMaterialTest:title()
+    return "Testing Sprite3DMaterial"
+end
+
+function Sprite3DMaterialTest:subtitle()
+    return ""
+end
+
+function Sprite3DMaterialTest:onEnter()
+
+    local material = cc.Sprite3DMaterial:createWithFilename("Sprite3DTest/outline.material")
+    local sprite = cc.Sprite3D:create("Sprite3DTest/sphere_bumped.c3b")
+        :setScale(20.0)
+        :setPosition(cc.p(0,0))
+        :setRotation3D(cc.vec3(90.0, 0.0, 0.0))
+        :setCameraMask(2)
+        :setMaterial(material)
+    self:addChild(sprite)
+
+
+    local camera = cc.Camera:create()
+        :setPosition3D(cc.vec3(0.0, 0.0, 100.0))
+        :lookAt(cc.vec3(0.0, 0.0, 0.0))
+        :setCameraFlag(cc.CameraFlag.USER1)
+    self:addChild(camera)
+end
+
+function Sprite3DMaterialTest:onExit()
 end
 
 function Sprite3DTest()
@@ -1223,7 +1336,10 @@ function Sprite3DTest()
         Sprite3DMirrorTest.create,
         AsyncLoadSprite3DTest.create,
         Sprite3DCubeMapTest.create,
+        Sprite3DNormalMappingTest.create,
+        Sprite3DMaterialTest.create,
     }
+    Helper.index = 1
 
     scene:addChild(Sprite3DBasicTest.create())
     scene:addChild(CreateBackMenuItem())

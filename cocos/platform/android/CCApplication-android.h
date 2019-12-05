@@ -1,6 +1,7 @@
 /****************************************************************************
 Copyright (c) 2010-2012 cocos2d-x.org
-Copyright (c) 2013-2014 Chukong Technologies Inc.
+Copyright (c) 2013-2016 Chukong Technologies Inc.
+Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
 
 http://www.cocos2d-x.org
 
@@ -22,12 +23,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ****************************************************************************/
-
-#ifndef __CC_APPLICATION_ANDROID_H__
-#define __CC_APPLICATION_ANDROID_H__
-
-#include "platform/CCPlatformConfig.h"
-#if CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID
+#pragma once
 
 #include "platform/CCCommon.h"
 #include "platform/CCApplicationProtocol.h"
@@ -51,7 +47,7 @@ public:
     @brief    Callback by Director to limit FPS.
     @param interval The time, expressed in seconds, between current frame and next.
     */
-    void setAnimationInterval(float interval);
+    virtual void setAnimationInterval(float interval) override;
 
     /**
     @brief    Run the message loop.
@@ -71,25 +67,30 @@ public:
     @brief Get current language config
     @return Current language config
     */
-    virtual LanguageType getCurrentLanguage();
+    virtual LanguageType getCurrentLanguage() override;
     
     /**
     @brief Get current language iso 639-1 code
     @return Current language iso 639-1 code
     */
-    virtual const char * getCurrentLanguageCode();
+    virtual const char * getCurrentLanguageCode() override;
     
     /**
      @brief Get target platform
      */
-    virtual Platform getTargetPlatform();
+    virtual Platform getTargetPlatform() override;
     
+    /**
+     @brief Get application version.
+     */
+    virtual std::string getVersion() override;
+
     /**
      @brief Open url in default browser
      @param String with url to open.
      @return true if the resource located by the URL was successfully opened; otherwise false.
      */
-    virtual bool openURL(const std::string &url);
+    virtual bool openURL(const std::string &url) override;
 
     /**
     @brief  This function will be called when the application screen size is changed.
@@ -103,7 +104,3 @@ protected:
 };
 
 NS_CC_END
-
-#endif // CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID
-
-#endif // __CC_APPLICATION_ANDROID_H__
